@@ -249,6 +249,10 @@ function Uninstall()
     rm -rf /usr/local/ssl;
     rm -rf /usr/local/jemalloc;
 	rm -rf /usr/local/nginx/;
+	rm -rf /usr/local/pcre-src;
+    rm -rf /usr/local/zlib-src;
+    rm -rf /usr/local/openssl-src;
+    rm -rf /usr/local/jemalloc-src;
 	for line in `ls /root/amh/modules`; do
 		amh module $line uninstall;
 	done;
@@ -294,9 +298,12 @@ function InstallPcre()
 		Downloadfile "${PcreVersion}.tar.gz" "http://${GetUrl}/${PcreVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$PcreVersion;
 		echo "正在解压 ${PcreVersion}.tar.gz ...";
-		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C $AMHDir/packages/untar;
+		if [ ！ -d /usr/local/pcre-src ]; then
+			mkdir /usr/local/pcre-src;
+		fi;
+		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C /usr/local/pcre-src;
 	
-		cd $AMHDir/packages/untar/$PcreVersion;
+		cd /usr/local/pcre-src;
 		./configure --prefix=/usr/local/pcre;
 		make;
 		make install;
@@ -315,9 +322,12 @@ function InstallZlib()
 		Downloadfile "${ZlibVersion}.tar.gz" "http://${GetUrl}/${ZlibVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$ZlibVersion;
 		echo "正在解压 ${ZlibVersion}.tar.gz ...";
-		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C $AMHDir/packages/untar;
+		if [ ！ -d /usr/local/zlib-src ]; then
+			mkdir /usr/local/zlib-src;
+		fi;
+		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C /usr/local/zlib-src;
 
-		cd $AMHDir/packages/untar/$ZlibVersion;
+		cd /usr/local/zlib-src;
 		./configure --prefix=/usr/local/zlib;
 		make;
 		make install;
@@ -336,9 +346,12 @@ function InstallOpenssl()
 		Downloadfile "${OpensslVersion}.tar.gz" "http://${GetUrl}/${OpensslVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$OpensslVersion;
 		echo "正在解压 ${OpensslVersion}.tar.gz ...";
-		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C $AMHDir/packages/untar;
+		if [ ！ -d /usr/local/openssl-src ]; then
+			mkdir /usr/local/openssl-src;
+		fi;
+		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C /usr/local/openssl-src;
 
-		cd $AMHDir/packages/untar/$OpensslVersion;
+		cd /usr/local/openssl-src;
 		./config --prefix=/usr/local/openssl --openssldir=/usr/local/ssl;
 		make;
 		make install;
@@ -355,9 +368,12 @@ function InstallJemalloc()
 		Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$JemallocVersion;
 		echo "正在解压 ${JemallocVersion}.tar.gz ...";
-		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $AMHDir/packages/untar;
+		if [ ！ -d /usr/local/jemalloc-src ]; then
+			mkdir /usr/local/jemalloc-src;
+		fi;
+		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local/jemalloc-src;
 	
-		cd $AMHDir/packages/untar/$JemallocVersion;
+		cd /usr/local/jemalloc-src;
 		./configure --prefix=/usr/local/jemalloc;
 		make;
 		make install;
@@ -507,7 +523,7 @@ function InstallNginx()
 		tar -zxf $AMHDir/packages/$NginxVersion.tar.gz -C $AMHDir/packages/untar;
 
 		cd $AMHDir/packages/untar/$NginxVersion;
-		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=/usr/local/openssl --with-zlib=/usr/local/zlib --with-pcre=/usr/local/pcre --with-jemalloc=/usr/local/jemalloc --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
+		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=../openssl-src --with-zlib=../zlib-src --with-pcre=../pcre-src --with-jemalloc=../jemalloc-src --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
 		make -j $Cpunum;
 		make install;
 
