@@ -359,9 +359,6 @@ function InstallJemalloc()
 		Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$JemallocVersion;
 		echo "正在解压 ${JemallocVersion}.tar.gz ...";
-		if [ ! -d /usr/local/jemalloc-src ]; then
-			mkdir /usr/local/jemalloc-src;
-		fi;
 		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local;
 	
 		cd /usr/local/$JemallocVersion;
@@ -514,7 +511,7 @@ function InstallNginx()
 		tar -zxf $AMHDir/packages/$NginxVersion.tar.gz -C $AMHDir/packages/untar;
 
 		cd $AMHDir/packages/untar/$NginxVersion;
-		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=../openssl-src --with-zlib=../zlib-src --with-pcre=../pcre-src --with-jemalloc=../jemalloc-src --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
+		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=/usr/local/$OpensslVersion --with-zlib=/usr/local/$ZlibVersion --with-pcre=/usr/local/$PcreVersion --with-jemalloc=/usr/local/$JemallocVersion --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
 		make -j $Cpunum;
 		make install;
 
