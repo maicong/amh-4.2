@@ -298,7 +298,7 @@ function InstallPcre()
 		Downloadfile "${PcreVersion}.tar.gz" "http://${GetUrl}/${PcreVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$PcreVersion;
 		echo "正在解压 ${PcreVersion}.tar.gz ...";
-		if [ ！ -d /usr/local/pcre-src ]; then
+		if [ ! -d /usr/local/pcre-src ]; then
 			mkdir /usr/local/pcre-src;
 		fi;
 		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C /usr/local/pcre-src;
@@ -322,7 +322,7 @@ function InstallZlib()
 		Downloadfile "${ZlibVersion}.tar.gz" "http://${GetUrl}/${ZlibVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$ZlibVersion;
 		echo "正在解压 ${ZlibVersion}.tar.gz ...";
-		if [ ！ -d /usr/local/zlib-src ]; then
+		if [ ! -d /usr/local/zlib-src ]; then
 			mkdir /usr/local/zlib-src;
 		fi;
 		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C /usr/local/zlib-src;
@@ -346,7 +346,7 @@ function InstallOpenssl()
 		Downloadfile "${OpensslVersion}.tar.gz" "http://${GetUrl}/${OpensslVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$OpensslVersion;
 		echo "正在解压 ${OpensslVersion}.tar.gz ...";
-		if [ ！ -d /usr/local/openssl-src ]; then
+		if [ ! -d /usr/local/openssl-src ]; then
 			mkdir /usr/local/openssl-src;
 		fi;
 		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C /usr/local/openssl-src;
@@ -368,7 +368,7 @@ function InstallJemalloc()
 		Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$JemallocVersion;
 		echo "正在解压 ${JemallocVersion}.tar.gz ...";
-		if [ ！ -d /usr/local/jemalloc-src ]; then
+		if [ ! -d /usr/local/jemalloc-src ]; then
 			mkdir /usr/local/jemalloc-src;
 		fi;
 		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local/jemalloc-src;
