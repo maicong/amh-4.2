@@ -359,7 +359,7 @@ function InstallJemalloc()
 		Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$JemallocVersion;
 		echo "正在解压 ${JemallocVersion}.tar.gz ...";
-		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local;
+		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C /usr/local;
 	
 		cd /usr/local/$JemallocVersion;
 		./configure --prefix=/usr/local/jemalloc;
