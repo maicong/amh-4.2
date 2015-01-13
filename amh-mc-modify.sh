@@ -621,7 +621,7 @@ function InstallSafeSshd()
 {
     echo "[sshd IP黑名单 安装中] ************************************************** >>";
     if [ ! -a $NeusshblFiLe ] && [ ! -L $NeusshblLink ]; then
-        LIBWRAP=`ldd `which sshd` | grep libwrap | wc -l`;
+        LIBWRAP=`ldd \`which sshd\` | grep libwrap | wc -l`;
         if [ $LIBWRAP -ge 1 ]; then
             cd /usr/local/bin/;
             wget antivirus.neu.edu.cn/ssh/soft/fetch_neusshbl.sh;
