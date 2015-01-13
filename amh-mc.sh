@@ -249,10 +249,10 @@ function Uninstall()
     rm -rf /usr/local/ssl;
     rm -rf /usr/local/jemalloc;
 	rm -rf /usr/local/nginx/;
-	rm -rf /usr/local/pcre-src;
-    rm -rf /usr/local/zlib-src;
-    rm -rf /usr/local/openssl-src;
-    rm -rf /usr/local/jemalloc-src;
+	rm -rf /usr/local/$PcreVersion;
+    rm -rf /usr/local/$ZlibVersion;
+    rm -rf /usr/local/$OpensslVersion;
+    rm -rf /usr/local/$JemallocVersion;
 	for line in `ls /root/amh/modules`; do
 		amh module $line uninstall;
 	done;
@@ -298,12 +298,9 @@ function InstallPcre()
 		Downloadfile "${PcreVersion}.tar.gz" "http://${GetUrl}/${PcreVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$PcreVersion;
 		echo "正在解压 ${PcreVersion}.tar.gz ...";
-		if [ ! -d /usr/local/pcre-src ]; then
-			mkdir /usr/local/pcre-src;
-		fi;
-		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C /usr/local/pcre-src;
+		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C /usr/local;
 	
-		cd /usr/local/pcre-src;
+		cd /usr/local/$PcreVersion;
 		./configure --prefix=/usr/local/pcre;
 		make;
 		make install;
@@ -322,12 +319,9 @@ function InstallZlib()
 		Downloadfile "${ZlibVersion}.tar.gz" "http://${GetUrl}/${ZlibVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$ZlibVersion;
 		echo "正在解压 ${ZlibVersion}.tar.gz ...";
-		if [ ! -d /usr/local/zlib-src ]; then
-			mkdir /usr/local/zlib-src;
-		fi;
-		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C /usr/local/zlib-src;
+		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C /usr/local;
 
-		cd /usr/local/zlib-src;
+		cd /usr/local/$ZlibVersion;
 		./configure --prefix=/usr/local/zlib;
 		make;
 		make install;
@@ -346,12 +340,9 @@ function InstallOpenssl()
 		Downloadfile "${OpensslVersion}.tar.gz" "http://${GetUrl}/${OpensslVersion}.tar.gz";
 		rm -rf $AMHDir/packages/untar/$OpensslVersion;
 		echo "正在解压 ${OpensslVersion}.tar.gz ...";
-		if [ ! -d /usr/local/openssl-src ]; then
-			mkdir /usr/local/openssl-src;
-		fi;
-		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C /usr/local/openssl-src;
+		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C /usr/local;
 
-		cd /usr/local/openssl-src;
+		cd /usr/local/$OpensslVersion;
 		./config --prefix=/usr/local/openssl --openssldir=/usr/local/ssl;
 		make;
 		make install;
@@ -371,9 +362,9 @@ function InstallJemalloc()
 		if [ ! -d /usr/local/jemalloc-src ]; then
 			mkdir /usr/local/jemalloc-src;
 		fi;
-		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local/jemalloc-src;
+		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $/usr/local;
 	
-		cd /usr/local/jemalloc-src;
+		cd /usr/local/$JemallocVersion;
 		./configure --prefix=/usr/local/jemalloc;
 		make;
 		make install;
