@@ -10,5 +10,12 @@
 - 修改错误提示页
 
 **使用方法：**
+1、安装wget命令
+Centos:
+`yum install -y wget`
+Debian/Ubuntu:
+`apt-get install wget`
+2、运行一句话安装命令
+`wget http://u1.cdn.yuxiaoxi.com/linux/amh-4.2/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
 
-`wget http://u1.cdn.yuxiaoxi.com/linux/amh-4.2/amh-mc-modify.sh && bash amh-mc-modify.sh 2>&1 | tee amh-mc-modify.log`
+更多模块可在管理面板进行安装。
