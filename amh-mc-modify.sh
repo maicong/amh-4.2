@@ -246,11 +246,13 @@ function Uninstall()
     rm -rf /usr/local/pcre;
     rm -rf /usr/local/zlib;
     rm -rf /usr/local/openssl;
+    rm -rf /usr/local/ssl;
     rm -rf /usr/local/jemalloc;
 	rm -rf /usr/local/nginx/;
 	for line in `ls /root/amh/modules`; do
 		amh module $line uninstall;
 	done;
+	rm -rf /etc/ld.so.conf.d/libiconv.conf /etc/ld.so.conf.d/pcre.conf /etc/ld.so.conf.d/zlib.conf /etc/ld.so.conf.d/jemalloc.conf;
 	rm -rf /usr/local/mysql/ /etc/my.cnf  /etc/ld.so.conf.d/mysql.conf /usr/bin/mysql /var/lock/subsys/mysql /var/spool/mail/mysql;
 	rm -rf /usr/local/php/ /usr/lib/php /etc/php.ini /etc/php.d /usr/local/zend;
 	rm -rf /home/wwwroot/;
@@ -277,6 +279,8 @@ function InstallLibiconv()
 		./configure --prefix=/usr/local/libiconv;
 		make;
 		make install;
+		echo '/usr/local/libiconv/lib' > /etc/ld.so.conf.d/libiconv.conf;
+		/sbin/ldconfig;
 		echo "[完成] ${LibiconvVersion} 安装完成.";
 	else
 		echo '[完成] libiconv 已经安装!';
@@ -296,6 +300,8 @@ function InstallPcre()
 		./configure --prefix=/usr/local/pcre;
 		make;
 		make install;
+		echo '/usr/local/pcre/lib' > /etc/ld.so.conf.d/pcre.conf;
+		/sbin/ldconfig;
 		echo "[完成] ${PcreVersion} 安装完成.";
 	else
 		echo '[完成] pcre 已经安装!';
@@ -315,6 +321,8 @@ function InstallZlib()
 		./configure --prefix=/usr/local/zlib;
 		make;
 		make install;
+		echo '/usr/local/zlib/lib' > /etc/ld.so.conf.d/zlib.conf;
+		/sbin/ldconfig;
 		echo "[完成] ${ZlibVersion} 安装完成.";
 	else
 		echo '[完成] zlib 已经安装!';
@@ -353,12 +361,30 @@ function InstallJemalloc()
 		./configure --prefix=/usr/local/jemalloc;
 		make;
 		make install;
-		echo '/usr/local/lib' > /etc/ld.so.conf.d/local.conf;
-		ldconfig;
+		echo '/usr/local/jemalloc/lib' > /etc/ld.so.conf.d/jemalloc.conf;
+		/sbin/ldconfig;
 		echo "[完成] ${JemallocVersion} 安装完成.";
 	else
 		echo '[完成] jemalloc 已经安装!';
 	fi;
+}
+
+function InstallSafeSshd()
+{
+    echo "[SSH IP黑名单 安装中] ************************************************** >>";
+    if [ ! -a $NeusshblFiLe ] && [ ! -L $NeusshblLink ]; then
+        LIBWRAP=`ldd \`which sshd\` | grep libwrap | wc -l`;
+        if [ $LIBWRAP -ge 1 ]; then
+            cd /usr/local/bin/;
+            wget antivirus.neu.edu.cn/ssh/soft/fetch_neusshbl.sh;
+            chmod +x fetch_neusshbl.sh;
+            cd /etc/cron.hourly/;
+            ln -s /usr/local/bin/fetch_neusshbl.sh .;
+            ./fetch_neusshbl.sh;
+        fi;
+    else
+        echo '[完成] SSH IP黑名单 已经安装.';
+    fi; 
 }
 
 function InstallMysql()
@@ -374,7 +400,7 @@ function InstallMysql()
 		cd $AMHDir/packages/untar/$MysqlVersion;
 		groupadd mysql;
 		useradd -s /sbin/nologin -g mysql mysql;
-		cmake -DCMAKE_INSTALL_PREFIX=/usr/local/mysql -DCMAKE_EXE_LINKER_FLAGS="-ljemalloc" -DWITH_SAFEMALLOC=OFF -DDEFAULT_CHARSET=utf8 -DDEFAULT_COLLATION=utf8_general_ci -DWITH_EXTRA_CHARSETS=complex -DWITH_READLINE=1 -DENABLED_LOCAL_INFILE=1;
+		cmake -DCMAKE_INSTALL_PREFIX=/usr/local/mysql -DDEFAULT_CHARSET=utf8 -DDEFAULT_COLLATION=utf8_general_ci -DWITH_EXTRA_CHARSETS=complex -DWITH_READLINE=1 -DENABLED_LOCAL_INFILE=1;
 		#http://forge.mysql.com/wiki/Autotools_to_CMake_Transition_Guide
 		make -j $Cpunum;
 		make install;
@@ -409,6 +435,8 @@ EOF
 		ln -s /usr/local/mysql/bin/myisamchk /usr/bin/myisamchk;
 		ln -s /usr/local/mysql/bin/mysqld_safe /usr/bin/mysqld_safe;
 
+		sed -i 's@executing mysqld_safe@executing mysqld_safe\nexport LD_PRELOAD=/usr/local/jemalloc/lib/libjemalloc.so@' /usr/local/mysql/bin/mysqld_safe
+
 		/usr/local/mysql/bin/mysqladmin password $MysqlPass;
 		rm -rf /usr/local/mysql/data/test;
 
@@ -442,7 +470,7 @@ function InstallPhp()
 		groupadd www;
 		useradd -m -s /sbin/nologin -g www www;
 		if [ "$InstallModel" == '1' ]; then
-			./configure --prefix=/usr/local/php --enable-fpm --with-fpm-user=www --with-fpm-group=www --with-config-file-path=/etc --with-config-file-scan-dir=/etc/php.d --with-openssl --with-zlib  --with-curl --enable-ftp --with-gd --with-jpeg-dir --with-png-dir --with-freetype-dir --enable-gd-native-ttf --enable-mbstring --enable-zip --with-iconv=/usr/local/libiconv --with-mysql=/usr/local/mysql --without-pear $PHPDisable;
+			./configure --prefix=/usr/local/php --enable-fpm --with-fpm-user=www --with-fpm-group=www --with-config-file-path=/etc --with-config-file-scan-dir=/etc/php.d --with-openssl=/usr/local/openssl --with-zlib=/usr/local/zlib  --with-curl --enable-ftp --with-gd --with-jpeg-dir --with-png-dir --with-freetype-dir --enable-gd-native-ttf --enable-mbstring --enable-zip --with-iconv=/usr/local/libiconv --with-mysql=/usr/local/mysql --without-pear $PHPDisable;
 		fi;
 		make -j $Cpunum;
 		make install;
@@ -479,7 +507,7 @@ function InstallNginx()
 
 	if [ ! -d /usr/local/nginx ]; then
 		cd $AMHDir/packages/untar/$NginxVersion;
-		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=/usr/local/openssl --with-zlib=/usr/local/zlib --with-pcre=/usr/local/pcre --with-jemalloc --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
+		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=/usr/local/openssl --with-zlib=/usr/local/zlib --with-pcre=/usr/local/pcre --with-jemalloc=/usr/local/jemalloc --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
 		make -j $Cpunum;
 		make install;
 
@@ -617,24 +645,6 @@ function InstallAMS()
 	fi;
 }
 
-function InstallSafeSshd()
-{
-    echo "[sshd IP黑名单 安装中] ************************************************** >>";
-    if [ ! -a $NeusshblFiLe ] && [ ! -L $NeusshblLink ]; then
-        LIBWRAP=`ldd \`which sshd\` | grep libwrap | wc -l`;
-        if [ $LIBWRAP -ge 1 ]; then
-            cd /usr/local/bin/;
-            wget antivirus.neu.edu.cn/ssh/soft/fetch_neusshbl.sh;
-            chmod +x fetch_neusshbl.sh;
-            cd /etc/cron.hourly/;
-            ln -s /usr/local/bin/fetch_neusshbl.sh .;
-            ./fetch_neusshbl.sh;
-        fi;
-    else
-        echo '[完成] IP黑名单 已经安装.';
-    fi; 
-}
-
 
 # AMH Installing ****************************************************************************
 CheckSystem;
@@ -652,13 +662,13 @@ InstallPcre;
 InstallZlib;
 InstallOpenssl;
 InstallJemalloc;
+InstallSafeSshd;
 InstallMysql;
 InstallPhp;
 InstallNginx;
 InstallPureFTPd;
 InstallAMH;
 InstallAMS;
-InstallSafeSshd;
 
 if [ -s /usr/local/nginx ] && [ -s /usr/local/php ] && [ -s /usr/local/mysql ]; then
 
