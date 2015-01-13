@@ -167,7 +167,7 @@ function InstallBasePackages()
 
 		cp /etc/yum.conf /etc/yum.conf.lnmp
 		sed -i 's:exclude=.*:exclude=:g' /etc/yum.conf
-		for packages in gcc gcc-c++ ncurses-devel libxml2-devel openssl-devel curl-devel libjpeg-devel libpng-devel autoconf pcre-devel libtool-libs freetype-devel gd zlib-devel zip unzip wget crontabs iptables file bison cmake patch mlocate flex diffutils automake make readline-devel glibc-devel glibc-static glib2-devel bzip2-devel gettext-devel libcap-devel logrotate ftp expect; do 
+		for packages in gcc gcc-c++ ncurses-devel libxml2 libxml2-devel openssl-devel curl-devel gd gd-devel libjpeg libjpeg-devel libpng libpng-devel libpng10 libpng10-devel autoconf kernel-devel pcre-devel libtool libtool-libs freetype freetype-devel zlib zlib-devel zip unzip wget crontabs iptables file bison cmake patch mlocate flex diffutils automake make readline-devel glibc-devel glibc-static glib2 glib2-devel bzip2 bzip2-devel gettext-devel libcap-devel logrotate ftp expect; do 
 			echo "[${packages} 安装中] ************************************************** >>";
 			yum -y install $packages; 
 		done;
@@ -269,12 +269,12 @@ function Uninstall()
 function InstallLibiconv()
 {
 	echo "[${LibiconvVersion} 安装中] ************************************************** >>";
-	Downloadfile "${LibiconvVersion}.tar.gz" "http://${GetUrl}/${LibiconvVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$LibiconvVersion;
-	echo "正在解压 ${LibiconvVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$LibiconvVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/libiconv ]; then
+		Downloadfile "${LibiconvVersion}.tar.gz" "http://${GetUrl}/${LibiconvVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$LibiconvVersion;
+		echo "正在解压 ${LibiconvVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$LibiconvVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cd $AMHDir/packages/untar/$LibiconvVersion;
 		./configure --prefix=/usr/local/libiconv;
 		make;
@@ -290,12 +290,12 @@ function InstallLibiconv()
 function InstallPcre()
 {
 	echo "[${PcreVersion} 安装中] ************************************************** >>";
-	Downloadfile "${PcreVersion}.tar.gz" "http://${GetUrl}/${PcreVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$PcreVersion;
-	echo "正在解压 ${PcreVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/pcre ]; then
+		Downloadfile "${PcreVersion}.tar.gz" "http://${GetUrl}/${PcreVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$PcreVersion;
+		echo "正在解压 ${PcreVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$PcreVersion.tar.gz -C $AMHDir/packages/untar;
+	
 		cd $AMHDir/packages/untar/$PcreVersion;
 		./configure --prefix=/usr/local/pcre;
 		make;
@@ -311,12 +311,12 @@ function InstallPcre()
 function InstallZlib()
 {
 	echo "[${ZlibVersion} 安装中] ************************************************** >>";
-	Downloadfile "${ZlibVersion}.tar.gz" "http://${GetUrl}/${ZlibVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$ZlibVersion;
-	echo "正在解压 ${ZlibVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/zlib ]; then
+		Downloadfile "${ZlibVersion}.tar.gz" "http://${GetUrl}/${ZlibVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$ZlibVersion;
+		echo "正在解压 ${ZlibVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$ZlibVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cd $AMHDir/packages/untar/$ZlibVersion;
 		./configure --prefix=/usr/local/zlib;
 		make;
@@ -332,12 +332,12 @@ function InstallZlib()
 function InstallOpenssl()
 {
 	echo "[${OpensslVersion} 安装中] ************************************************** >>";
-	Downloadfile "${OpensslVersion}.tar.gz" "http://${GetUrl}/${OpensslVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$OpensslVersion;
-	echo "正在解压 ${OpensslVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/openssl ]; then
+		Downloadfile "${OpensslVersion}.tar.gz" "http://${GetUrl}/${OpensslVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$OpensslVersion;
+		echo "正在解压 ${OpensslVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$OpensslVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cd $AMHDir/packages/untar/$OpensslVersion;
 		./config --prefix=/usr/local/openssl --openssldir=/usr/local/ssl;
 		make;
@@ -351,12 +351,12 @@ function InstallOpenssl()
 function InstallJemalloc()
 {
 	echo "[${JemallocVersion} 安装中] ************************************************** >>";
-	Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$JemallocVersion;
-	echo "正在解压 ${JemallocVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/jemalloc ]; then
+		Downloadfile "${JemallocVersion}.tar.gz" "http://${GetUrl}/${JemallocVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$JemallocVersion;
+		echo "正在解压 ${JemallocVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$JemallocVersion.tar.gz -C $AMHDir/packages/untar;
+	
 		cd $AMHDir/packages/untar/$JemallocVersion;
 		./configure --prefix=/usr/local/jemalloc;
 		make;
@@ -391,12 +391,12 @@ function InstallMysql()
 {
 	# [dir] /usr/local/mysql/
 	echo "[${MysqlVersion} 安装中] ************************************************** >>";
-	Downloadfile "${MysqlVersion}.tar.gz" "http://${GetUrl}/${MysqlVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$MysqlVersion;
-	echo "正在解压 ${MysqlVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$MysqlVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -f /usr/local/mysql/bin/mysql ]; then
+		Downloadfile "${MysqlVersion}.tar.gz" "http://${GetUrl}/${MysqlVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$MysqlVersion;
+		echo "正在解压 ${MysqlVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$MysqlVersion.tar.gz -C $AMHDir/packages/untar;
+	
 		cd $AMHDir/packages/untar/$MysqlVersion;
 		groupadd mysql;
 		useradd -s /sbin/nologin -g mysql mysql;
@@ -460,12 +460,12 @@ function InstallPhp()
 {
 	# [dir] /usr/local/php
 	echo "[${PhpVersion} 安装中] ************************************************** >>";
-	Downloadfile "${PhpVersion}.tar.gz" "http://${GetUrl}/${PhpVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$PhpVersion;
-	echo "正在解压 ${PhpVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$PhpVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/php ]; then
+		Downloadfile "${PhpVersion}.tar.gz" "http://${GetUrl}/${PhpVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$PhpVersion;
+		echo "正在解压 ${PhpVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$PhpVersion.tar.gz -C $AMHDir/packages/untar;
+	
 		cd $AMHDir/packages/untar/$PhpVersion;
 		groupadd www;
 		useradd -m -s /sbin/nologin -g www www;
@@ -500,12 +500,12 @@ function InstallNginx()
 {
 	# [dir] /usr/local/nginx
 	echo "[${NginxVersion} 安装中] ************************************************** >>";
-	Downloadfile "${NginxVersion}.tar.gz" "http://${GetUrl}/${NginxVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$NginxVersion;
-	echo "正在解压 ${NginxVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$NginxVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /usr/local/nginx ]; then
+		Downloadfile "${NginxVersion}.tar.gz" "http://${GetUrl}/${NginxVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$NginxVersion;
+		echo "正在解压 ${NginxVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$NginxVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cd $AMHDir/packages/untar/$NginxVersion;
 		./configure --prefix=/usr/local/nginx --user=www --group=www --with-openssl=/usr/local/openssl --with-zlib=/usr/local/zlib --with-pcre=/usr/local/pcre --with-jemalloc=/usr/local/jemalloc --with-ipv6 --with-http_spdy_module --with-http_ssl_module --with-http_realip_module --with-http_addition_module --with-http_image_filter_module --with-http_sub_module --with-http_dav_module --with-http_flv_module --with-http_mp4_module --with-http_gzip_static_module --with-http_gunzip_module --with-http_auth_request_module --with-http_concat_module --with-http_random_index_module --with-http_secure_link_module --with-http_degradation_module --with-http_sysguard_module --without-mail_pop3_module --without-mail_imap_module --without-mail_smtp_module --without-http_uwsgi_module --without-http_scgi_module;
 		make -j $Cpunum;
@@ -545,12 +545,12 @@ function InstallPureFTPd()
 {
 	# [dir] /etc/	/usr/local/bin	/usr/local/sbin
 	echo "[${PureFTPdVersion} 安装中] ************************************************** >>";
-	Downloadfile "${PureFTPdVersion}.tar.gz" "http://${GetUrl}/${PureFTPdVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$PureFTPdVersion;
-	echo "正在解压 ${PureFTPdVersion}.tar.gz ...";
-	tar -zxf $AMHDir/packages/$PureFTPdVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -f /etc/pure-ftpd.conf ]; then
+		Downloadfile "${PureFTPdVersion}.tar.gz" "http://${GetUrl}/${PureFTPdVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$PureFTPdVersion;
+		echo "正在解压 ${PureFTPdVersion}.tar.gz ...";
+		tar -zxf $AMHDir/packages/$PureFTPdVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cd $AMHDir/packages/untar/$PureFTPdVersion;
 		./configure --with-puredb --with-quotas --with-throttling --with-ratios --with-peruserlimits;
 		make -j $Cpunum;
@@ -595,12 +595,12 @@ function InstallAMH()
 {
 	# [dir] /home/wwwroot/index/web
 	echo "[${AMHVersion} 安装中] ************************************************** >>";
-	Downloadfile "${AMHVersion}.tar.gz" "http://${GetUrl}/${AMHVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$AMHVersion;
-	echo "正在解压 ${AMHVersion}.tar.gz ...";
-	tar -xf $AMHDir/packages/$AMHVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /home/wwwroot/index/web ]; then
+		Downloadfile "${AMHVersion}.tar.gz" "http://${GetUrl}/${AMHVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$AMHVersion;
+		echo "正在解压 ${AMHVersion}.tar.gz ...";
+		tar -xf $AMHDir/packages/$AMHVersion.tar.gz -C $AMHDir/packages/untar;
+	
 		cp -r $AMHDir/packages/untar/$AMHVersion /home/wwwroot/index/web;
 
 		gcc -o /bin/amh -Wall $AMHDir/conf/amh.c;
@@ -631,12 +631,12 @@ function InstallAMS()
 {
 	# [dir] /home/wwwroot/index/web/ams
 	echo "[${AMSVersion} 安装中] ************************************************** >>";
-	Downloadfile "${AMSVersion}.tar.gz" "http://${GetUrl}/${AMSVersion}.tar.gz";
-	rm -rf $AMHDir/packages/untar/$AMSVersion;
-	echo "正在解压 ${AMSVersion}.tar.gz ...";
-	tar -xf $AMHDir/packages/$AMSVersion.tar.gz -C $AMHDir/packages/untar;
-
 	if [ ! -d /home/wwwroot/index/web/ams ]; then
+		Downloadfile "${AMSVersion}.tar.gz" "http://${GetUrl}/${AMSVersion}.tar.gz";
+		rm -rf $AMHDir/packages/untar/$AMSVersion;
+		echo "正在解压 ${AMSVersion}.tar.gz ...";
+		tar -xf $AMHDir/packages/$AMSVersion.tar.gz -C $AMHDir/packages/untar;
+
 		cp -r $AMHDir/packages/untar/$AMSVersion /home/wwwroot/index/web/ams;
 		chown www:www -R /home/wwwroot/index/web/ams/View/DataFile;
 		echo "[完成] ${AMSVersion} 安装完成.";
