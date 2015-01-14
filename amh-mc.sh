@@ -438,6 +438,7 @@ EOF
 		ln -s /usr/local/mysql/bin/mysqldump /usr/bin/mysqldump;
 		ln -s /usr/local/mysql/bin/myisamchk /usr/bin/myisamchk;
 		ln -s /usr/local/mysql/bin/mysqld_safe /usr/bin/mysqld_safe;
+		ln -s /usr/local/mysql/include/* /usr/local/include/
 
 		sed -i 's@executing mysqld_safe@executing mysqld_safe\nexport LD_PRELOAD=/usr/local/jemalloc/lib/libjemalloc.so@' /usr/local/mysql/bin/mysqld_safe
 
