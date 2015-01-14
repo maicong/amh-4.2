@@ -9,6 +9,8 @@
 - 修改提示文字为中文
 - 修改错误提示页
 
+发布页：http://www.yuxiaoxi.com/2015-01-13-amh-mc.html
+
 **使用方法：**
 
 1、安装wget命令
@@ -26,3 +28,9 @@ Debian/Ubuntu:
 `wget http://u1.cdn.yuxiaoxi.com/linux/amh-4.2/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
 
 更多模块可在管理面板进行安装。
+
+**问题解决：**
+
+php5.6.4的`extension_dir`是`/usr/local/php/lib/php/extensions/no-debug-non-zts-20131226`。
+
+如果你在后台安装php相关模块无法报错使用，请编辑`/etc/php.ini`将里面的`no-debug-non-zts-20090626`修改为`no-debug-non-zts-20131226`。
