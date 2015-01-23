@@ -33,4 +33,4 @@ Debian/Ubuntu:
 
 php5.6.4的`extension_dir`是`/usr/local/php/lib/php/extensions/no-debug-non-zts-20131226`。
 
-如果你在后台安装php相关模块无法报错使用，请编辑`/etc/php.ini`将里面的`no-debug-non-zts-20090626`修改为`no-debug-non-zts-20131226`。
+如果你在后台安装php相关模块报错无法使用，请检查`/etc/php.ini`文件，将里面的`no-debug-non-zts-20090626`修改为`no-debug-non-zts-20131226`。
