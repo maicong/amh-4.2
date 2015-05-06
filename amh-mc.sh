@@ -26,7 +26,7 @@ StartDateSecond='';
 PHPDisable='';
 
 # GetUrl
-GetUrl='xcdn.yuxiaoxi.com';
+GetUrl='xcdn.yuxiaoxi.com/amh-4.2';
 
 # Version
 AMSVersion='ams-1.5.0107-02';
