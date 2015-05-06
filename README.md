@@ -6,8 +6,6 @@
 
 > 添加 openssl-1.0.2a
 
-> 添加 openssl-1.0.2a
-
 > 添加 gperftools-2.4
 
 > 添加 ngx_cache_purge-2.3
@@ -43,11 +41,17 @@ Centos:
 
 `yum install -y wget`
 
+`yum install -y screen`
+
 Debian/Ubuntu:
 
 `apt-get install wget`
 
-2、运行一句话安装命令
+`apt-get install -y screen`
+
+2、然后运行安装命令
+
+`screen -S installAMH`
 
 `wget http://xcdn.yuxiaoxi.com/amh-4.2/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
 
