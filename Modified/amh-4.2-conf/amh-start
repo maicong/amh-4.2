@@ -1,0 +1,22 @@
+#!/bin/bash
+#chkconfig: 345 85 15
+#description: AMH start script.
+
+/sbin/iptables-restore < /etc/amh-iptables;
+
+amh nginx stop;
+amh mysql stop;
+for PID in `ps aux|grep -E 'php-fpm|pure-ftpd|nginx'|grep -v grep|awk '{print $2}'`; do
+	kill -QUIT $PID >/dev/null;
+done;
+rm -f /usr/local/php/var/run/pid/*.pid;
+rm -f /usr/local/php/var/run/php-fpm.pid;
+sync;
+{ echo 3 > /proc/sys/vm/drop_caches; } 2>/dev/null;
+
+amh mysql start;
+amh php start;
+/usr/local/php/sbin/php-fpm --fpm-config /usr/local/php/etc/php-fpm.conf;
+/usr/local/sbin/redhat.init start 2>/dev/null;
+amh nginx start;
+{ echo 0 > /proc/sys/vm/drop_caches; } 2>/dev/null;

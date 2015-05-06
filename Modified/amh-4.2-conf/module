@@ -1,0 +1,87 @@
+#!/bin/bash
+export PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function module()
+{
+	[ ! -d "/root/amh/modules" ] && echo '[Error] /root/amh/modules not exist.' && exit 1;
+	if [ "$1" == 'download' ]; then
+		module_name=$2;
+		[ "$module_name" == '' ] && read -p "[Notice] Download new module, Please input name:" module_name \
+		&& [ "$module_name" == '' ] && module download;
+		
+		cd /root/amh/modules;
+		[ -d "${module_name}" ] && echo "[Error] ${module_name} is already exist." && return 1;
+
+		module_name=${module_name// /};
+		module_name=${module_name//\/};
+		if wget -c --tries=3 http://amysql.com/file/AMH/4.2/modules/${module_name}.module.tar.gz ; then
+			tar -zxf ${module_name}.module.tar.gz && rm -f ${module_name}.module.tar.gz && echo "[OK] ${module_name} download successfully.";
+			return 0;
+		fi;
+		echo "[Error] Download Failed: ${module_name}.tar.gz";
+		return 1;
+	fi;
+	# **************************************
+
+	[ `ls /root/amh/modules | wc -w` == "0" ] && echo '[Notice] /root/amh/modules is empty.' && exit 1;
+
+	if [ "$*" != ''	]; then
+		module_name=$1;
+		module_action=$2;
+		module_param=$3;
+	else
+		echo "[AMH] Please select module: "
+		select module_name in `ls /root/amh/modules`; do break; done;
+	fi;
+
+	module_script='';
+	for line in `ls	/root/amh/modules`; do
+		[ "$line" == "$module_name" ] && module_script="/root/amh/modules/$line/AMHScript ";
+	done;
+
+	if [ "$module_script" == '' ]; then
+		module;
+		return;
+	else
+		action_arr=('info' 'install' 'admin' 'uninstall' 'status' 'delete' 'exit');
+		[ "$module_action" == '' ] && echo "[Notice] $module_name module management, please select: " \
+		&& select module_action in ${action_arr[*]}; do break; done;
+
+		[ "$module_action" == 'exit' ] && exit;
+		for line in ${action_arr[*]}; do
+			if [ "$module_action" == "$line" ]; then
+				echo "[$module_name $module_action]";
+				echo '=============================================================';
+				
+				[ "$module_param" != "force" ] && echo "$module_action" | grep 'install' >/dev/null && \
+				[ `ps x | egrep -v 'egrep' | egrep -c 'amh module|amh upgrade'` -ge 2 ] && \
+				echo '[Error] AMH-SSH is running, please wait.' && exit 1;
+
+				source $module_script;
+				if [ "$module_action" == 'delete' ]; then
+					if amh_module_status ; then
+						echo "[Error] $module_name module is running, please uninstall first and then delete it.";
+					else
+						[ "$module_param" == '' ] && read -p "[Notice] Confirm Deletion? (y/n):" module_param
+						[ "$module_param" == 'y' ] && rm -rf /root/amh/modules/$module_name && echo "[OK] ${module_name} deleted successfully." && return 0;
+					fi;
+					return 1;
+				fi;
+
+				[ "$module_action" == 'admin' ] && [ "$module_param" == '' ] && \
+				read -p "[Notice] Please input admin param:" module_param
+				amh_module_$module_action $module_param && exit 0;
+                                exit 1;
+			fi;
+		done;
+		module $module_name;
+		return;
+	fi;
+}
+
+module $*;

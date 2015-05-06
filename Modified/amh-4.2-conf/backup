@@ -1,0 +1,114 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+RemoteBackup=$1;
+BackupOptions=$2;
+AMHTarPass=$3;
+AMHComment=$4;
+AMHBackupVersion='4.2';
+MysqlBackup='';
+WwwBackup='';
+AMHBackup='';
+NginxConfBackup='';
+PHPConfBackup='';
+FTPConfBackup='';
+OpensslBackup='';
+DoneBackup='';
+ModulesBackup='';
+ModulesInstall='';
+ExitBackup='0';
+
+[ "$BackupOptions" == '' ] && BackupOptions='y';
+DateTag=`date +%Y%m%d-%H%M%S`;
+DateTag="${BackupOptions}-${DateTag}";
+mkdir -p /home/backup/${DateTag}/;
+cd /home/backup/${DateTag}/;
+mkdir -p mysql/conf nginx php ftp config;
+[ "$BackupOptions" != 'n' ] && { ln -s /home/wwwroot ./wwwroot || WwwBackup='wwwroot backup failed.'; };
+cp -a /usr/local/nginx/conf ./nginx || NginxConfBackup='nginx backup failed.';
+cp -a /usr/local/php/etc ./php || PHPConfBackup='php etc backup failed.';
+cp -a /etc/php.ini ./php || PHPConfBackup='php.ini backup failed.';
+cp -a /etc/my.cnf ./mysql/conf || MysqlBackup='my.cnf backup failed.';
+cp -a /etc/pure-ftpd.conf /etc/pureftpd.passwd ./ftp || FTPConfBackup='ftp backup failed.';
+cp -a /home/wwwroot/index/etc/amh-backup.conf  ./amh-backup-${AMHBackupVersion}.conf;
+cp -a /root/amh/modules ./ || ModulesBackup='modules backup failed.';
+crontab -l > ./config/amh-crontab;
+/sbin/iptables-save > ./config/amh-iptables;
+sed -i "s|#date|$(date)|g" ./amh-backup-${AMHBackupVersion}.conf;
+
+if [ "$WwwBackup" == '' -a "$NginxConfBackup" == '' -a "$PHPConfBackup" == '' -a "$FTPConfBackup" == '' -a "$ModulesBackup"  == '' ]; then
+
+	DoneBackup="${DateTag}.tar.gz.amh";
+	[ "$RemoteBackup" == 'y' -o "$RemoteBackup" == 'Y' ] && backup_remote=1 || backup_remote=0;
+	[ "$AMHTarPass" == '' ] && backup_password=0 || { [ "$AMHTarPass" != 'n' ] && backup_password=1 && DoneBackup="${DateTag}.amh"; };
+
+        sql_backup_list="INSERT INTO amh.amh_backup_list (backup_file, backup_size, backup_password, backup_remote, backup_options, backup_comment) VALUES ('${DoneBackup}', '-', '${backup_password}', '${backup_remote}', '${BackupOptions}', '${AMHComment}')";
+        mysql -uroot -p${MysqlPass} -B -N -e "SET NAMES 'utf8';$sql_backup_list";
+
+
+	#modules-install ******************************
+	for line in `ls /root/amh/modules`; do
+		if amh module $line status > /dev/null; then
+			ModulesInstall="$ModulesInstall $line";
+		fi;
+	done;
+	echo "$ModulesInstall" > ./config/amh-modules-install.conf;
+
+
+        #mysql ****************************************
+	if [ "$BackupOptions" != 'N' ]; then
+		mkdir -p /home/backup/${DateTag}/mysql/grants;
+		for database in ` mysql -uroot -p${MysqlPass} -B -N -e 'SHOW DATABASES'`;do
+			echo "[Notice] ${database} Database backup ...";
+			/usr/local/mysql/bin/mysqldump --single-transaction -uroot -p${MysqlPass} --databases ${database} > /home/backup/${DateTag}/mysql/${database}.sql || MysqlBackup="database:${database} backup failed.";
+		done;
+		mysql -uroot -p${MysqlPass} -B -N -e "SELECT DISTINCT CONCAT( 'SHOW GRANTS FOR ''', user, '''@''', host, ''';' ) AS query FROM mysql.user" | mysql -uroot -p${MysqlPass} -B -N | sed 's#\(GRANT .*\)#\1;#' > /home/backup/${DateTag}/mysql/grants/grants.sql;
+		[ ! -f "/home/backup/${DateTag}/mysql/grants/grants.sql" ] && MysqlBackup="mysql grants backup failed.";
+	fi;
+
+        if [ "$MysqlBackup" == '' ]; then
+                cd /home/backup/;
+		if [ "$LANG" == '' ]; then
+			tar -h -zcvf /home/backup/${DateTag}.tar.gz.amh ./${DateTag} >/tmp/amh.log;
+			cat /tmp/amh.log && rm -f /tmp/amh.log;
+		else
+			tar -h -zcvf /home/backup/${DateTag}.tar.gz.amh ./${DateTag} || AMHBackup='AMH backup failed.';
+		fi;
+
+                if [ -f "${DateTag}.tar.gz.amh" -a "$AMHBackup" == '' ]; then
+                        if [ "$backup_password" == '1' ]; then
+                               openssl enc -des3 -salt -k ${AMHTarPass} -in ${DateTag}.tar.gz.amh -out ${DateTag}.amh || OpensslBackup='openssl error.';
+                               [ "$OpensslBackup" != '' ] && { echo "[Error] ${OpensslBackup}" && ExitBackup='1'; };
+                               rm -f ${DateTag}.tar.gz.amh;
+                        fi;
+                else
+                        echo "[Error] ${AMHBackup}.";
+			ExitBackup='1';
+                fi;
+
+        else
+                echo "[Error] $MysqlBackup";
+		ExitBackup='1';
+        fi;
+else
+        echo "[Error] ${WwwBackup} ${NginxConfBackup} ${PHPConfBackup} ${FTPConfBackup} ${ModulesBackup}";
+	ExitBackup='1';
+fi;
+
+rm -rf /home/backup/${DateTag};
+[ "$ExitBackup" == '1' ] && exit 1;
+
+if [ "$DoneBackup" != '' ] && [ "$backup_remote" == '1' ] ; then
+	amh BRftp post ${DoneBackup};
+	amh BRssh post ${DoneBackup};
+fi;
+
+[ "$RemoteBackup" == 'Y' ] && rm -f /home/backup/${DoneBackup};
+echo "[OK] AMH backup success. (${DoneBackup})";
+exit 0;

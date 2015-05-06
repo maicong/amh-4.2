@@ -1,0 +1,106 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function FtpManagement()
+{
+	if [ "$*" != '' ]; then
+		selected=$1;
+		ftpuser=$2;
+		ftppwd=$3;
+		ftproot=$4;
+		ftpuid=${13};
+
+		FTPParam=('' '' '' '' '' '-T' '-t' '-q' '-Q' '-n' '-N' '-y' '-z');
+                i=1;
+		cmdstr='';
+		for line in $*; do
+			[ "${FTPParam[$i]}" != '' -a  "$line" != '0' ] && cmdstr="${cmdstr} ${FTPParam[$i]} ${line}";
+			i=$[i+1];
+		done;
+	else
+		echo "[AMH] FTP Management please select: (1~7)"
+		select selected in  'list' 'add' 'edit' 'pass' 'chown' 'del' 'exit'; do break; done;
+	fi;
+
+	[ "$selected" == 'exit' ] && exit;
+	if [ "$selected" == 'list' ]; then
+		echo -e "\033[47m\033[30mFTPUser : Root-Directory : FTP-UID-Name : Directory-UID-Name\033[0m ";
+		awk -F: 'NR==FNR{amhU[$3]=$1;}NR!=FNR && amhU[$3]{print $1" : "$6" : "amhU[$3]}' /etc/passwd /etc/pureftpd.passwd | while read line; do
+			ls -ld `echo $line | awk '{print $3}'` | awk '{print line" : "$3}' line="$line";
+		done;
+	elif [ "$selected" == 'add' ]; then
+		[ "$ftpuser" == '' ] && read -p "[Notice] Please input ftpuser name:" ftpuser && [ "$ftpuser" == '' ] && echo '[Error] empty ftpuser name.' && return 1;
+		[ "$ftppwd" == '' ] && read -p "[Notice] Please input ftpuser password:" ftppwd && [ "$ftppwd" == '' ] && echo '[Error] empty ftpuser password.' && return 1;
+		[ "$ftproot" == '' ] && read -p "[Notice] Please input ftpuser root directory:" ftproot && [ "$ftproot" == '' ] && echo '[Error] empty ftpuser password.' && return 1;
+		[ ! -d "$ftproot" ]  && echo "Non-existent directory: ${ftproot}" && return 1;
+		[ "$ftpuid" == '' ] && read -p "[Notice] Please input ftpuser UID-Name (www/ftpuser):" ftpuid ;
+		[ "$ftpuid" != 'www' -a "$ftpuid" != 'ftpuser' ] && ftpuid='ftpuser';
+		cmdstr="${cmdstr} -u ${ftpuid}";
+		[ "$amh_uid" != '0' ] && ([ "${ftproot:0:14}" != '/home/wwwroot/' ] || echo "$ftproot" | egrep '\.\.|index' || ! echo "$ftproot" | egrep '^/home/wwwroot/[0-9a-zA-Z\.\-]+/web') && \
+		echo "[Error] $ftproot forbidden."  && return 1;
+		(echo $ftppwd; echo $ftppwd) | pure-pw useradd $ftpuser -d $ftproot $cmdstr && echo "[OK] successfully create ftpuser $ftpuser" && echo "ftp root directory is $ftproot";
+		pure-pw mkdb;
+		if ls -ld $ftproot | grep ' root ' >/dev/null; then
+			FtpManagement chown $ftpuser y;
+		fi;
+	elif [ "$selected" == 'edit' ]; then
+		[ "$ftpuser" == '' ]  && read -p "[Notice] Please input ftpuser name:" ftpuser && [ "$ftpuser" == '' ] && echo '[Error] empty ftpuser name.' && return 1;
+		[ "$ftproot" != '' -a "$ftproot" != '0' ] && cmdstr=$cmdstr" -d "$ftproot;
+		[ "$cmdstr" == '' ] && read -p "[Notice] Please input parame [-d home directory] [-t download bandwidth] [-T upload bandwidth] [-q upload ratio] [-Q download ratio] [-n max number of files] [-N max Mbytes] [-y max number of concurrent sessions] [-z hhmm-hhmm] : " cmdstr
+		echo "$cmdstr" | grep '\-u ' >/dev/null && echo '[Error] not allowed param: -u.' && return 1;
+		[ "$ftpuid" == '' ] && read -p "[Notice] Change ftpuser UID-Name? Please input (y/n):" ftpuidConfirm ;
+		[ "$ftpuidConfirm" == 'y' ] && read -p "[Notice] Please input ftpuser UID-Name (www/ftpuser):" ftpuid ;
+		if [ "$ftpuid" != '' ]; then
+			[ "$ftpuid" != 'www' -a "$ftpuid" != 'ftpuser' ] && ftpuid='ftpuser';
+			cmdstr="${cmdstr} -u ${ftpuid}";
+		fi;
+
+		cmd="pure-pw usermod $ftpuser $cmdstr -m";
+		status="[OK] successfully change ftpuser $ftpuser";
+		i=0;
+		for line in $cmd; do
+		cmd_arr[$i]="$line";
+		if [ $[i%2] == 0 -a $i -gt 3 ]; then
+			pw_param=${cmd_arr[$[i-1]]};
+			[ "$pw_param" == '-d' ] && [ "$amh_uid" != '0' ] && ([ "${line:0:14}" != '/home/wwwroot/' ] || echo "$line" | egrep '\.\.|index' || ! echo "$line" | egrep '^/home/wwwroot/[0-9a-zA-Z\.\-]+/web') && \
+			echo "[Error] $line forbidden."  && return 1;
+			if [ "$line" == "-" ]; then
+				pure-pw usermod $ftpuser $pw_param '' || status='' ;
+			else
+				pure-pw usermod $ftpuser $pw_param $line || status='';
+			fi;
+		fi;
+		i=$[i+1];
+		done;
+		[ "$status" != '' ] && echo $status && pure-pw mkdb;
+	elif [ "$selected" == 'chown' ]; then
+		ftpRD=$3;
+		[ "$ftpuser" == '' ]  && read -p "[Notice] Please input ftpuser name:" ftpuser && [ "$ftpuser" == '' ] && echo '[Error] empty ftpuser name.' && return 1;
+		set -- `FtpManagement list | awk -F ' : ' '$1 == ftpuser {print $2" "$3}' ftpuser=$ftpuser`;
+		[ "$1" != '' ] && ftproot="$1";
+		[ "$2" == 'www' ] && uid_name='www:www';
+		[ "$2" == 'ftpuser' ] && uid_name='ftpuser:ftpgroup';
+		if [ -d "$ftproot" -a "$uid_name" != '' ]; then
+			[ "$ftpRD" == '' ] && read -p "[Notice] chown -R $uid_name $ftproot ? Please input (y/n):" ftpRD ;
+			[ "$ftpRD" == 'y' ] && chmod -R 755 $ftproot && chown -R $uid_name $ftproot && echo '[OK] Chown -R ftpuser root directory success.';
+		else
+			echo "Non-existent ftpuser: ${ftpuser}" && return 1;
+		fi;
+	elif [ "$selected" == 'pass' ]; then
+		[ "$ftpuser" == '' ] && read -p "[Notice] Please input ftpuser name:" ftpuser && [ "$ftpuser" == '' ] && echo '[Error] empty ftpuser name.' && return 1;
+		[ "$ftppwd" == '' ] && read -p "[Notice] Please input ftpuser password:" ftppwd && [ "$ftppwd" == '' ] && echo '[Error] empty ftpuser password.' && return 1;
+		(echo $ftppwd; echo $ftppwd) | pure-pw passwd $ftpuser -m && echo "[OK] successfully change password" && pure-pw mkdb;
+	elif [ "$selected" == 'del' ]; then
+		[ "$ftpuser" == '' ] && read -p "[Notice] delete ftp user :" ftpuser && [ "$ftpuser" == '' ] && echo '[Error] empty ftpuser name.' && return 1;
+		pure-pw userdel $ftpuser -m && echo "[OK] successfully delete ftpuser $ftpuser";
+	else
+		FtpManagement;
+		return;
+	fi;
+}
+FtpManagement $*;

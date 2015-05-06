@@ -1,0 +1,47 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function CrontabManagement()
+{
+	if [ "$*" != '' ]; then
+		selected=$1;
+	else
+		echo "[AMH] Crontab Management please select: (1~6)"
+		select selected in  'list' 'add' 'del' 'exit'; do break; done;
+	fi;
+
+	[ "$selected" == 'exit' ] && exit;
+	if [ "$selected" == 'list' ]; then
+		crontab -l;
+		exit;
+	elif [ "$selected" != '' ]; then
+		crontab_file='/home/wwwroot/index/tmp/crontab.tmp';
+		crontab -l > $crontab_file;
+
+		str_cmd="${selected:4}";
+		selected="${selected:0:3}";
+		[ "$str_cmd" == "" ] && read -p '[Notice] Please input crontab data. (eg: 1 2 * * * amh php restart): ' str_cmd ;
+		amh_cmd=`echo "$str_cmd" | awk '{print $6}'`;
+		[ "$amh_uid" != '0' ] && ([ "$amh_cmd" != 'amh' ] || echo "$str_cmd" | egrep '\&|\||;' >/dev/null) && echo '[Error] Command not allowed.' && exit 1;
+
+		if [ "$selected" == 'add' ]; then
+			echo "$str_cmd" >> $crontab_file;
+			crontab $crontab_file && CrontabManagement list;
+		elif [ "$selected" == 'del' ]; then
+			str_cmd=${str_cmd//\*/\\\*};
+			str_cmd=${str_cmd//\//\\\/};
+			sed -i "/^$str_cmd$/d" $crontab_file;
+			crontab $crontab_file && CrontabManagement list;
+		fi;
+		exit 1;
+	fi;
+	
+	MysqlManagement;
+	return;
+}
+CrontabManagement "$*";

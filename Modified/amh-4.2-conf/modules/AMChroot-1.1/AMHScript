@@ -1,0 +1,130 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: AMChroot-1.1';
+		echo 'AMH-ModuleDescription: AMChroot 设置主机运行模式的模块，轻松切换主机需要运行的环境。可设置为两种运行模式：默认/防跨站安全模式，各虚拟主机隔离环境下运行，互不影响，安全性较高。常规兼容运行模式，虚拟主机不做隔离限制，有较自由的运行空间。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-07-07';
+		echo 'AMH-ModuleAdmin: index.php?c=amchroot';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/AMChroot.gif';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+			exit;
+		else
+			cd /root/amh/modules/AMChroot-1.1;
+			\cp web/Controller/amchroot.php /home/wwwroot/index/web/Controller/amchroot.php;
+			\cp web/Model/amchroots.php /home/wwwroot/index/web/Model/amchroots.php;
+			\cp web/View/amchroot.php /home/wwwroot/index/web/View/amchroot.php;
+			amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+				param_list=${1//,/ };
+				set -- $param_list;
+				action=$1;
+				domain=$2;
+				mode=$3;
+
+				if [ "$action" == '' ]; then
+					echo "[Notice] AMChroot management, please select: (1~2)"
+					select action in 'list' 'edit' ; do
+						break;
+					done;
+				fi;
+
+				if [ "$action" == 'list' ]; then
+					for line in `ls /home/wwwroot/`; do
+						set_chroot='Chroot';
+						if [ -f "/usr/local/php/etc/fpm/$line.conf" ]; then
+							! grep -q 'chroot' /usr/local/php/etc/fpm/$line.conf && set_chroot='Normal';
+							grep -q ';chroot' /usr/local/php/etc/fpm/$line.conf && set_chroot='Normal';
+						fi;
+						[ -f "/usr/local/nginx/conf/vhost/$line.conf" ] && echo "$line [Running][$set_chroot]";
+						[ -f "/usr/local/nginx/conf/vhost_stop/$line.conf" ] && echo "$line [Stop][$set_chroot]";
+					done;
+					exit;
+				elif [ "$action" == 'edit' ]; then
+
+					if [ "$domain" == '' ]; then
+						read -p "[Notice] please input domain(e.g amysql.com):" domain
+						if [ "$domain" == '' ]; then
+							amh module AMChroot-1.1 admin $action;
+							return 1;
+						fi;
+					fi;
+
+					host_conf_file='';
+					[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && host_conf_file=/usr/local/nginx/conf/vhost/$domain.conf;
+					[ -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && host_conf_file=/usr/local/nginx/conf/vhost_stop/$domain.conf;
+					if [ "$host_conf_file" == '' ]; then
+						echo "$domain not exist!";
+						return 1;
+						exit;
+					fi;
+
+					if [ "$mode" != 'chroot' ] && [ "$mode" != 'normal' ]; then
+						read -p "[Notice] please input domain run mode(e.g chroot/normal):" mode
+						if [ "$mode" != 'chroot' ] && [ "$mode" != 'normal' ]; then
+							amh module AMChroot-1.1 admin $action,$domain;
+							return 1;
+						fi;
+					fi;
+
+					if [ "$mode" == 'normal' ]; then
+						sed -i "s/SCRIPT_FILENAME  \/web\$subdomain\$fastcgi_script_name/SCRIPT_FILENAME  \/home\/wwwroot\/$domain\/web\$subdomain\$fastcgi_script_name/" $host_conf_file;
+						sed -i "s/DOCUMENT_ROOT  \/web\$subdomain/DOCUMENT_ROOT  \/home\/wwwroot\/$domain\/web\$subdomain/" $host_conf_file;
+						sed -i "/chroot = /d" /usr/local/php/etc/fpm/$domain.conf;
+					fi;
+
+					if [ "$mode" == 'chroot' ]; then
+						sed -i "s/SCRIPT_FILENAME  \/home\/wwwroot\/$domain\/web\$subdomain\$fastcgi_script_name/SCRIPT_FILENAME  \/web\$subdomain\$fastcgi_script_name/" $host_conf_file;
+						sed -i "s/DOCUMENT_ROOT  \/home\/wwwroot\/$domain\/web\$subdomain/DOCUMENT_ROOT  \/web\$subdomain/" $host_conf_file;
+						sed -i "/chroot = /d" /usr/local/php/etc/fpm/$domain.conf;
+						echo "chroot = /home/wwwroot/$domain" >> /usr/local/php/etc/fpm/$domain.conf;
+
+					fi;
+					amh nginx reload;
+					amh php reload $domain;
+					return 0;
+				fi;
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				rm -f /home/wwwroot/index/web/Controller/amchroot.php /home/wwwroot/index/web/Model/amchroots.php /home/wwwroot/index/web/View/amchroot.php;
+				echo '[OK] AMChroot-1.1 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/home/wwwroot/index/web/Controller/amchroot.php" ]; then
+				echo '[OK] AMChroot-1.1 is already installed.';
+				return 0;
+		else
+				echo '[Notice] AMChroot-1.1 is not installed.';
+				return 1;
+		fi;
+}
+

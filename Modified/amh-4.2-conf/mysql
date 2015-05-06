@@ -1,0 +1,39 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function MysqlManagement()
+{
+	if [ "$1" != '' ]; then
+		selected=$1;
+	else
+		echo "[AMH] MySQL Management please select: (1~6)"
+		select selected in  'start' 'stop' 'restart' 'reload' 'force-reload' 'exit'; do break; done;
+	fi;
+
+	[ "$selected" == 'exit' ] && exit;
+	if [ "$selected" != '' ]; then
+		( find /home/wwwroot/*/tmp/mysql.sock -maxdepth 0 -exec umount {} \; ) 2>/dev/null;
+		/usr/local/mysql/support-files/mysql.server $selected;
+
+		find /home/wwwroot/*/tmp/ -maxdepth 0 -exec touch {}/mysql.sock \;
+		[ -w /tmp/mysql.sock ] && find /home/wwwroot/*/tmp/mysql.sock -maxdepth 0 -exec mount --bind /tmp/mysql.sock {} \;
+		
+		ps ax | grep 'mysqld ' | grep -v 'grep' >/dev/null;
+		status=$?;
+		if [ "$selected" == 'stop' ]; then
+			[ "$status" == '1' ] && echo "[OK] MySQL stop" && exit 0;
+		else
+			[ "$status" == '0' ] && echo "[OK] MySQL ${selected}" && exit 0
+		fi;
+		exit 1;
+	fi;
+	
+	MysqlManagement;
+	return;
+}
+MysqlManagement $1;

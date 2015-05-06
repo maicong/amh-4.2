@@ -1,0 +1,106 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+ftp_host='';
+ftp_user='';
+ftp_pass='';
+ftp_log='/home/wwwroot/index/log/BRftp.log';
+check_ftp_log='/home/wwwroot/index/log/BRftp_check.log';
+
+function check_remote_ftp()
+{
+id=$1;
+sql="SELECT remote_ip , remote_user , remote_password FROM amh.amh_backup_remote WHERE remote_type = 'FTP' AND remote_id = '${id}'";
+set -- `mysql -uroot -p${MysqlPass} -B -N -e  "${sql}"`;
+ftp_host=$1;
+ftp_user=$2;
+ftp_pass=$3;
+[ "$ftp_host" == '' ] && echo '[Error] empty ftp host.' && exit 1;
+
+echo > ${check_ftp_log};
+transmitted=`ping -c3 ${ftp_host} | grep transmitted | awk '{print $4}'`;
+[ "$transmitted" == 0 ] && echo '[Error] time out.' && exit 1;
+
+ftp -n -v $ftp_host > ${check_ftp_log} << amh_ftp 
+user $ftp_user $ftp_pass
+type binary
+ls
+amh_ftp
+egrep -q '150 |125 ' ${check_ftp_log} && echo "[OK] ftp://${ftp_user}@${ftp_host} connected successfully." || echo "[Error] ftp://${ftp_user}@${ftp_host} connection failed." ;
+}
+
+
+function post_remote_ftp()
+{
+backup_file=$1;
+sql="SELECT remote_id , remote_ip , remote_user , remote_password , remote_path FROM amh.amh_backup_remote WHERE remote_type = 'FTP' AND remote_status = '1' ORDER BY remote_id ASC";
+mysql -uroot -p${MysqlPass} -B -N -e "${sql}"  | while read result; do
+set -- $result;
+status=`check_remote_ftp $1`;
+if egrep -q '150 |125 ' ${check_ftp_log}; then
+ftp_host=$2;
+ftp_user=$3;
+ftp_pass=$4;
+ftp_path=$5;
+
+post_file="/home/backup/${backup_file}";
+count_file=`ls -l $post_file | awk '{print $5}'`;
+block_sum=`echo $count_file | awk '{printf("%.2f", $1/1024)}'`;
+
+dir=`echo $ftp_path | sed "s#/# #g"`;
+dirs='';
+for dir_name in $dir; do
+	dirs="${dirs} \n mkdir ${dir_name} \n cd ${dir_name}";
+done;
+dirs=`echo -e $dirs`;
+
+function amh_ftp_put()
+{
+ftp -n -v $ftp_host > ${check_ftp_log} << amh_ftp 
+user $ftp_user $ftp_pass
+type binary
+$dirs
+hash
+put /home/backup/${backup_file} ./${backup_file}
+amh_ftp
+}
+amh_ftp_put &
+
+	while true; do
+		put_block_sum=`grep '\#' ${check_ftp_log} | wc -c`;
+		put_percentage=`echo "$block_sum $put_block_sum" | awk '{printf("%.f", $2/$1*100)}'`;
+		echo "amh BRftp post ${backup_file} ******************> ${put_percentage}%" ;
+		[ "$put_percentage" -gt 99 ] && log_text="post ${backup_file} success." && break; 
+
+		if [ "$_put_block_sum" == "$put_block_sum" ]; then
+			UseSecond=$[($(date +%s)-StartDateSecond)];
+			[ $[UseSecond%5] == 0 ] && echo "[Notice] Request timed out. ($UseSecond/180)" && sleep 3;
+			[ "$UseSecond" -gt 180 ] && log_text="post ${backup_file} failed." && break;
+		else
+			StartDateSecond=$(date +%s);
+			_put_block_sum=$put_block_sum;
+		fi;
+	done;
+else
+	log_text="post ${backup_file} failed.";
+fi;
+
+echo "${status} ${log_text}";
+sql_log="INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${status} \n $log_text', 'localhost')";
+mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+done;
+}
+
+
+if [ "$1" == 'check' ]; then
+	check_remote_ftp $2;
+elif [ "$1" == 'post' ]; then
+	post_remote_ftp $2;
+fi;
+

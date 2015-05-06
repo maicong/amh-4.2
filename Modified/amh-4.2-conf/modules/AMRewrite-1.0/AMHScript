@@ -1,0 +1,87 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+#info
+function amh_module_info()
+{
+		echo 'AMH-ModuleName: AMRewrite-1.0';
+		echo 'AMH-ModuleDescription: AMRewrite - AMH面板主机URL重写模块，在线添加管理、维护Rewrite规则。';
+		echo 'AMH-ModuleButton: 安装/卸载';
+		echo 'AMH-ModuleDate: 2013-05-21';
+		echo 'AMH-ModuleAdmin: ./index.php?c=amrewrite';
+		echo 'AMH-ModuleWebSite: http://amysql.com';
+		echo 'AMH-ModuleIco: http://amysql.com/View/images/amh_module/AMRewrite.gif';
+		echo 'AMH-ModuleScriptBy: Amysql';
+}
+
+#install
+function amh_module_install()
+{
+		if amh_module_status ; then
+				exit;
+		else
+				cd /root/amh/modules/AMRewrite-1.0;
+				\cp web/Controller/amrewrite.php  /home/wwwroot/index/web/Controller/;
+				\cp web/View/amrewrite.php  /home/wwwroot/index/web/View/;
+				for line in `ls conf`; do
+					! [ -f "/usr/local/nginx/conf/rewrite/$line" ] && cp conf/$line /usr/local/nginx/conf/rewrite;
+				done;
+				chown -R www:www /usr/local/nginx/conf/rewrite;
+
+				sed -i "/footer.php/i\<script>G('host_rewrite').parentNode.appendChild( C('input', {'type':'button', 'id':'AMRewrite-1.0', 'value':'管理', 'onclick':function (){WindowOpen(\"\/index.php?c=amrewrite\");}}) );<\/script>"  /home/wwwroot/index/web/View/host.php;
+				amh_module_status;
+		fi;
+}
+
+#admin
+function amh_module_admin()
+{
+		if amh_module_status ; then
+			param_list=${1//,/ };
+			set -- $param_list;
+			action=$1;
+
+			if [ "$action" == '' ]; then
+				echo "[Notice] AMRewrite management, please select: (1~3)"
+				select action in 'list' 'check_config' 'exit'; do
+					break;
+				done;
+			fi;
+
+			if [ "$action" == 'list' ]; then
+				ls /usr/local/nginx/conf/rewrite;
+				exit;
+			elif [ "$action" == 'check_config' ]; then
+				/usr/local/nginx/sbin/nginx -t 2>&1 > /tmp/nginx_check_config && cat /tmp/nginx_check_config;
+			else
+				amh module AMRewrite-1.0 admin;
+				exit;
+			fi;
+		else
+				exit;
+		fi;
+}
+
+#uninstall
+function amh_module_uninstall()
+{
+		if amh_module_status ; then
+				rm -f /home/wwwroot/index/web/Controller/amrewrite.php /home/wwwroot/index/web/View/amrewrite.php;
+				sed -i "/AMRewrite-1.0/d" /home/wwwroot/index/web/View/host.php;
+				echo '[OK] AMRewrite-1.0 Uninstall successful.';
+		else
+				exit;
+		fi;
+}
+
+#status
+function amh_module_status()
+{
+		if [ -f "/home/wwwroot/index/web/Controller/amrewrite.php" ]; then
+				echo '[OK] AMRewrite-1.0 is already installed.';
+				return 0;
+		else
+				echo '[Notice] AMRewrite-1.0 is not installed.';
+				return 1;
+		fi;
+}

@@ -1,0 +1,57 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function PHPManagement()
+{
+	if [ "$*" != '' ]; then
+		selected=$1;
+		domain=$2;
+		confirm=$3;
+	else
+		echo "[AMH] PHP Management please select: (1~6)"
+		select selected in  'start' 'stop' 'reload' 'force-quit' 'restart'  'exit'; do break; done;
+	fi;
+
+	
+	if [ "$domain" == '' ] && [ "$selected" != '' ]; then
+		echo "[Notice] All PHP ${selected}...";
+		for domain in `ls /home/wwwroot/`; do
+			[ "$domain" != 'index' ] && [ -f "/usr/local/php/etc/fpm/$domain.conf" ] && /root/amh/php $selected $domain;
+		done;
+		exit 0;
+	fi;
+
+	echo "[Notice] $domain PHP ${selected}...";
+
+	if [ "$domain" == 'amh-web' ] && [ "$confirm" == 'y' ]; then
+		php_fpm="/usr/local/php/etc/php-fpm.conf";
+		php_pid="/usr/local/php/var/run/php-fpm.pid";
+	else
+		php_fpm="/usr/local/php/etc/fpm/$domain.conf";
+		php_pid="/usr/local/php/var/run/pid/php-fpm-$domain.pid";
+	fi;
+
+	[ "$selected" == 'exit' ] && exit;
+	if [ "$selected" == 'start' ]; then
+		[ -f "$php_pid" ] && echo "[OK] "${domain}" PHP is already started" && exit 0;
+		/usr/local/php/sbin/php-fpm --fpm-config $php_fpm && echo "[OK] "${domain}" PHP start";
+	elif [ "$selected" == 'stop' ]; then
+		[ -f "$php_pid" ] && kill -QUIT `cat $php_pid` && echo "[OK] "${domain}" PHP stop";
+	elif [ "$selected" == 'force-quit' ]; then
+		[ -f "$php_pid" ] && kill -TERM `cat $php_pid` && echo "[OK] "${domain}" PHP force-quit";
+	elif [ "$selected" == 'restart' ]; then
+		[ -f "$php_pid" ] && kill -QUIT `cat $php_pid`;
+		/usr/local/php/sbin/php-fpm --fpm-config $php_fpm && echo "[OK] "${domain}" PHP restart";
+	elif [ "$selected" == 'reload' ]; then
+		[ -f "$php_pid" ] && kill -USR2 `cat $php_pid`  && echo "[OK] "${domain}" PHP reload";
+	else
+		PHPManagement;
+		return;
+	fi;
+}
+PHPManagement $*;

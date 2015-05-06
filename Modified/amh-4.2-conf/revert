@@ -1,0 +1,192 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+AMHConfig='/home/wwwroot/index/web/Amysql/Config.php';
+if [ ! -f "$AMHConfig" ]; then
+        echo '[Error] not exist file: AMH Config';
+        exit 1;
+fi;
+
+MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+AMHBackupFile=`echo ${1} | cut -d '.' -f 1`;
+AMHBackupFileType=`echo ${1} | cut -d '.' -f 2`;
+AMHTarPass=$2;
+Reload=$3;
+AMHBackupVersion='4.2';
+WwwRevertStatus='';
+MysqlRevertStatus='';
+NginxRevertStatus='';
+PHPRevertStatus='';
+FTPRevertStatus='';
+OpensslStatus='';
+DateTag=`date +%Y%m%d%H%M%S`;
+
+#mkdir -p /home/backup/backup-revert-log/$DateTag;
+#cd /home/backup/backup-revert-log/$DateTag;
+#mkdir wwwroot mysql nginx php ftp;
+
+[ "$AMHBackupFile" == '' ] && echo "[Error] please input AMHBackupFile. " && exit 1;
+cd /home/backup/;
+if [ "$AMHBackupFileType" == 'amh' ]; then
+        if [ "$AMHTarPass" != '' -a "$AMHTarPass" != 'n' ]; then
+                if [ -f "/home/backup/${AMHBackupFile}.amh" ]; then
+			openssl enc -d -des3 -salt -k ${AMHTarPass} -in /home/backup/${AMHBackupFile}.amh -out ./${AMHBackupFile}.tar.gz || OpensslStatus='password error.';
+			if [ "$OpensslStatus" != '' ]; then
+				echo "[Error] ${OpensslStatus}";
+				rm -f /home/backup/${AMHBackupFile}.tar.gz;
+				exit 1;
+			fi;
+                else
+			echo "[Error] not exist AMHBackupFile : /home/backup/${AMHBackupFile}.amh";
+			exit 1;
+                fi;
+        else
+                echo "[Error] password empty.";
+                exit 1;
+        fi;
+else
+        cp /home/backup/${AMHBackupFile}.tar.gz.amh /home/backup/${AMHBackupFile}.tar.gz;
+fi;
+
+if [ -f "/home/backup/${AMHBackupFile}.tar.gz" ]; then
+        tar -zxf /home/backup/${AMHBackupFile}.tar.gz;
+        if [ -f "/home/backup/${AMHBackupFile}/amh-backup-${AMHBackupVersion}.conf" ]; then
+
+		
+		#config ************************
+		cd /home/backup/${AMHBackupFile}/config;
+		crontab ./amh-crontab;
+		/sbin/iptables-restore < ./amh-iptables;
+		/sbin/iptables-save > /etc/amh-iptables;
+
+		#modules ***********************
+		for line in `ls /root/amh/modules`; do
+			amh module $line uninstall;
+		done;
+		cd /home/backup/${AMHBackupFile}/;
+		rm -rf /root/amh/modules/;
+		\cp -a modules /root/amh/;
+		for line in `cat /home/backup/${AMHBackupFile}/config/amh-modules-install.conf`; do
+			amh module $line uninstall;
+			amh module $line install;
+		done;
+
+		( find /home/wwwroot/*/tmp/mysql.sock -maxdepth 0 -exec umount {} \; ) 2>/dev/null;
+		#wwwroot ***********************
+                cd /home/backup/${AMHBackupFile}/;
+		if [ -d "/home/backup/${AMHBackupFile}/wwwroot" ]; then
+			rm -rf /home/wwwroot/;
+			\cp -a wwwroot /home/ || WwwRevertStatus="cp -a ${domain} failed.";
+			cd /home/wwwroot;
+			for domain in *; do
+				cd /home/wwwroot/$domain;
+				if [ -d /home/wwwroot/$domain/web ]; then
+					\cp /etc/hosts /etc/resolv.conf /etc/nsswitch.conf etc/;
+					if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
+						lib_dir=`ldd /bin/bash | grep 'ld-linux' | awk '{print $1}'`;
+						lib_dir=`dirname $lib_dir`;
+						mkdir lib64;
+						(\cp $lib_dir/{ld-linux-x86-64.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} lib64/) 2> /dev/null;
+						lib_dir=`ldd /bin/bash | grep 'libc.so' | awk '{print $3}'`;
+						lib_dir=`dirname $lib_dir`;
+						lib_dir_chroot=${lib_dir:1};
+						mkdir -p $lib_dir_chroot;
+						(\cp $lib_dir/{ld-linux.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} $lib_dir_chroot/) 2> /dev/null;
+
+						lib_dir=`ldd /usr/bin/curl | grep 'libcurl.so.4' | awk '{print $3}'`;
+						lib_dir=`dirname $lib_dir`;
+						lib_dir_chroot=${lib_dir:1};
+						mkdir -p $lib_dir_chroot;
+						\cp -a $lib_dir/gconv $lib_dir_chroot;
+						\cp -a $lib_dir/{libsoftokn3.so,libsqlite3.so.0,libsqlite3.so.0.8.6} $lib_dir_chroot;
+					else
+						(\cp /lib/{ld-linux.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} lib/) 2> /dev/null;
+						mkdir -p usr/lib;
+						\cp -a /usr/lib/gconv usr/lib;
+						\cp -a /usr/lib/{libsoftokn3.so,libsqlite3.so.0,libsqlite3.so.0.8.6} usr/lib;
+					fi;
+					
+					\cp /bin/{sh,bash} bin;
+					urandom_id=`ls -l /dev/urandom | awk '{print $5 $6}'`;
+					urandom_id=${urandom_id/,/ };
+					rm -f dev/urandom;
+					mknod dev/urandom c $urandom_id;
+				fi;
+			done;
+		fi;
+
+                #MySQL ***********************
+		if [ -d "/home/backup/${AMHBackupFile}/mysql/grants" ]; then
+			DropSql='';
+			for database in ` mysql -uroot -p${MysqlPass} -B -N -e 'SHOW DATABASES'`;do
+				[ "$database" != 'information_schema' -a "$database" != 'performance_schema' -a "$database" != 'mysql' ] && \
+				DropSql="${DropSql} DROP DATABASE \`${database}\`;";
+			done;
+			mysql -uroot -p${MysqlPass} -B -N -e "${DropSql}";
+
+			cd /home/backup/${AMHBackupFile}/mysql;
+			for database in *; do
+				if [ "$database" != 'information_schema.sql' -a "$database" != 'performance_schema.sql' ] && [ ! -d $database ]; then
+					echo "[Notice] ${database} Database revert ..." && \
+					mysql -uroot -p${MysqlPass}  < ${database} || MysqlRevertStatus="${database} revert failed.";
+				fi;
+			done;
+			#mysql -uroot -p${MysqlPass} -B -N -e "FLUSH PRIVILEGES;";
+			cd /home/backup/${AMHBackupFile}/mysql/grants/;
+			sed -i "1i FLUSH PRIVILEGES;" ./grants.sql;
+			mysql -uroot -p${MysqlPass}  < ./grants.sql || MysqlRevertStatus="grants.sql revert failed.";
+
+			cd /home/backup/${AMHBackupFile}/mysql/conf/;
+			cp -af my.cnf /etc || MysqlRevertStatus='my.cnf revert failed.';
+		fi;
+		find /home/wwwroot/*/tmp/ -maxdepth 0 -exec touch {}/mysql.sock \;
+		[ -w /tmp/mysql.sock ] && find /home/wwwroot/*/tmp/mysql.sock -maxdepth 0 -exec mount --bind /tmp/mysql.sock {} \;
+
+                #Nginx ***********************
+		rm -rf /usr/local/nginx/conf;
+                cd /home/backup/${AMHBackupFile}/nginx;
+                cp -af conf /usr/local/nginx || NginxRevertStatus='nginx conf revert failed.';
+
+
+                #php ***********************
+		rm -rf /usr/local/php/etc;
+                cd /home/backup/${AMHBackupFile}/php;
+                cp -af etc /usr/local/php  || PHPRevertStatus='php etc revert failed.';
+                cp -af php.ini /etc || PHPRevertStatus='php.ini revert failed.';
+
+
+                #ftp ***********************
+                cd /home/backup/${AMHBackupFile}/ftp;
+                cp -af pure-ftpd.conf /etc/ || FTPRevertStatus='pure-ftpd.conf revert failed.';
+                cp -af pureftpd.passwd /etc/ || FTPRevertStatus='pureftpd.passwd revert failed.';
+                pure-pw mkdb;
+
+                if [ "$WwwRevertStatus" == '' -a "$MysqlRevertStatus" == '' -a "$NginxRevertStatus" == '' -a "$PHPRevertStatus" == '' -a "$FTPRevertStatus" == '' ]; then
+			amh nginx reload;
+			amh nginx start;
+			amh php start;
+			if [ "$Reload" == '' ]; then
+				amh php reload;
+				amh php reload amh-web y;
+			fi;
+			echo "[OK] successfully Revert AMHBackupFile.";
+		else
+			echo "[Error] ${WwwRevertStatus} ${MysqlRevertStatus} ${NginxRevertStatus} ${PHPRevertStatus} ${FTPRevertStatus} ";
+			exit 1;
+                fi;
+        else
+                echo "[Error] ${AMHBackupFile}.tar.gz AMHBackupFile version validation failed.";
+		exit 1;
+        fi;
+
+        rm -rf /home/backup/${AMHBackupFile};
+        rm -f /home/backup/${AMHBackupFile}.tar.gz;
+else
+        echo "[Error] not exist AMHBackupFile : /home/backup/${AMHBackupFile}.tar.gz";
+	exit 1;
+fi;

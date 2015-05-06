@@ -1,0 +1,74 @@
+#!/bin/bash
+export PATH=/usr/kerberos/sbin:/usr/kerberos/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function upgrade()
+{
+
+[ "$*" != '' ] && upgrade_name=$1 && upgrade_action=$2;
+if [ "$upgrade_name" == 'list' ]; then
+	OldIFS=$IFS;
+	IFS=$'\n';
+	for item in `curl --connect-timeout 8 -s http://amysql.com/file/AMH/4.2/upgrade/list`; do
+		[ "${item:0:3}"  == 'AMH' ] && echo $item
+	done;
+	IFS=$OldIFS;
+	exit;
+fi;
+
+
+# upgrade_name ************
+item_arr='';
+i=0;
+while read item; do
+	[ "$item" != '' ] && [ "${item:0:3}"  == 'AMH' ] && \
+	item_arr[$i]=$item && i=$[i+1];
+done << EOT
+`upgrade list`
+EOT
+[ "$item_arr" == '' ] && echo '[Notice] Not upgrade data.' && exit 1;
+
+[ "$upgrade_name" == '' ] && \
+echo "[Notice] Please select upgrade script: " && \
+select upgrade_name in ${item_arr[*]}; do break; done;
+
+exist=0;
+for item in ${item_arr[*]}; do
+	[ "$item" == "$upgrade_name" ] && exist='1' && break;
+done;
+[ "$exist" != '1' ] && echo "[Error] upgrade script $upgrade_name not exist." && exit 1;
+
+
+# upgrade_action ************
+action_arr=('info' 'install' 'available_status' 'install_status' 'exit');
+[ "$upgrade_action" == '' ] && \
+echo "[Notice] $upgrade_name script management, please select: " && \
+select upgrade_action in ${action_arr[*]}; do break; done;
+[ "$upgrade_action" == 'exit' ] && exit;
+
+
+for line in ${action_arr[*]}; do
+	if [ "$upgrade_action" == "$line" ]; then
+		echo "[$upgrade_name $upgrade_action]";
+		echo '=============================================================';
+
+		[ "$upgrade_action" == 'install' ] && \
+		[ `ps x | egrep -v 'egrep' | egrep -c 'amh module|amh upgrade'` -ge 2 ] && \
+		echo '[Error] AMH-SSH is running, please wait.' && exit 1;
+		
+		rm -f /home/wwwroot/index/tmp/$upgrade_name;
+		wget -qP /home/wwwroot/index/tmp http://amysql.com/file/AMH/4.2/upgrade/$upgrade_name;
+
+		[ -f "/home/wwwroot/index/tmp/$upgrade_name" ] && source /home/wwwroot/index/tmp/$upgrade_name && \
+		amh_upgrade_$upgrade_action && exit 0;
+		exit 1;
+	fi;
+done;
+
+}
+
+upgrade $*;

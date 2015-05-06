@@ -1,0 +1,35 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function NginxManagement()
+{
+	if [ "$1" != '' ]; then
+		selected=$1;
+	else
+		echo "[AMH] Nginx Management please select: (1~4)"
+		select selected in 'start' 'stop' 'restart' 'reload' 'exit'; do break; done;
+	fi;
+
+	[ "$selected" == 'exit' ] && exit;
+	if [ "$selected" == 'start' ]; then
+		/usr/local/nginx/sbin/nginx;
+		ps x | grep 'nginx:' | grep -v 'grep' >/dev/null && echo "[OK] Nginx start";
+	elif [ "$selected" == 'stop' ]; then
+		kill -INT `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] Nginx stop";
+	elif [ "$selected" == 'restart' ]; then
+		kill -INT `cat /usr/local/nginx/logs/nginx.pid`;
+		/usr/local/nginx/sbin/nginx;
+		ps x | grep 'nginx:' | grep -v 'grep' >/dev/null && echo "[OK] Nginx restart";
+	elif [ "$selected" == 'reload' ]; then
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] Nginx reload";
+	else
+		NginxManagement;
+		return;
+	fi;
+}
+NginxManagement $1;

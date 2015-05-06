@@ -1,0 +1,157 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+MysqlPass=`cat /home/wwwroot/index/web/Amysql/Config.php | awk '{ FS="\047Password\047] = \047"; RS="\047;" } { print $2}' | sed '/^$/d'`;
+ssh_host='';
+ssh_user='';
+ssh_pass='';
+ssh_pass_type='';
+ssh_path='';
+put_file='';
+ssh_log='/home/wwwroot/index/log/BRssh.log';
+check_ssh_log='/home/wwwroot/index/log/BRssh_check.log';
+
+
+function check_remote_ssh() 
+{
+id=$1;
+sql="SELECT remote_ip , remote_user , remote_password, remote_pass_type FROM amh.amh_backup_remote WHERE remote_type = 'SSH' AND remote_id = '${id}'";
+set -- `mysql -uroot -p${MysqlPass} -B -N -e  "${sql}"`;
+ssh_host=$1;
+ssh_user=$2;
+ssh_pass=$3;
+ssh_pass_type=$4;
+[ "$ssh_host" == '' ] && echo '[Error] empty ssh host.' && exit 1;
+transmitted=`ping -c3 ${ssh_host} | grep transmitted | awk '{print $4}'`;
+[ "$transmitted" == 0 ] && echo '[Error] time out.' && exit 1;
+
+echo "[Notice] Connecting to server: \"${ssh_host}\", please wait.";
+echo > ${check_ssh_log};
+rm -f /tmp/issue;
+if [ "$ssh_pass_type" == '1' ]; then
+expect > ${check_ssh_log} <<EOF
+spawn scp ${ssh_user}@${ssh_host}:/etc/issue /tmp/issue
+expect "Are you sure you want to continue connecting (yes/no)?" { send "yes\r" }
+expect "@${ssh_host}'s password:" { send "$ssh_pass\r" }
+expect eof
+EOF
+else
+	rsa="/home/wwwroot/index/etc/rsa/${ssh_host}.amh.rsa";
+	rm -f ${rsa};
+	sql="SELECT remote_password FROM amh.amh_backup_remote WHERE remote_id = '${id}' into outfile '${rsa}'";
+	mysql -uroot -p${MysqlPass} -e "${sql}";
+	sed -i 's#\\##g' ${rsa}; #ctrl+v ctrl+m
+expect > ${check_ssh_log} <<EOF
+spawn scp -i ${rsa} ${ssh_user}@${ssh_host}:/etc/issue /tmp/issue
+expect "(yes/no)?" { send "yes\r"}
+expect eof
+EOF
+[ -f /tmp/issue ] && echo 'issue 100%' > ${check_ssh_log};
+fi;
+grep -q 'issue' ${check_ssh_log} && grep -q '100%' ${check_ssh_log} && echo "[OK] ssh#${ssh_user}@${ssh_host} connected successfully." || echo "[Error] ssh#${ssh_user}@${ssh_host} connection failed." ;
+}
+
+
+function post_remote_ssh()
+{
+echo > ${check_ssh_log};
+rm -f /tmp/issue;
+backup_file=$1;
+sql="SELECT remote_id , remote_ip , remote_user , remote_path , remote_pass_type , remote_password FROM amh.amh_backup_remote WHERE remote_type = 'SSH' AND remote_status = '1' ORDER BY remote_id ASC";
+mysql -uroot -p${MysqlPass} -B -N -e "${sql}"  | while read result; do
+	set -- $result;
+	ssh_id=$1;
+	ssh_host=$2;
+	ssh_user=$3;
+	ssh_path=$4;
+	ssh_pass_type=$5;
+	ssh_pass=$6;
+	echo "[Notice] Connecting to server: \"${ssh_host}\", please wait.";
+	status=`check_remote_ssh $ssh_id`;
+	status=`echo -e "$status" | sed -n '2p'`;
+
+if grep -q '100%' ${check_ssh_log}; then
+echo > ${check_ssh_log};
+function amh_ssh_put()
+{
+if [ "$ssh_pass_type" == '1' ]; then
+expect > ${check_ssh_log} <<EOF
+spawn ssh ${ssh_user}@${ssh_host} mkdir -p ${ssh_path}
+expect "Are you sure you want to continue connecting (yes/no)?" { send "yes\r" }
+expect "@${ssh_host}'s password:" { send "$ssh_pass\r" }
+expect eof
+EOF
+expect > ${check_ssh_log} <<EOF
+spawn scp /home/backup/${backup_file} ${ssh_user}@${ssh_host}:${ssh_path}/${backup_file}
+expect "@${ssh_host}'s password:" { send "$ssh_pass\r" }
+set timeout 60000
+expect eof
+EOF
+else
+	rsa="/home/wwwroot/index/etc/rsa/${ssh_host}.amh.rsa";
+	rm -f ${rsa};
+	sql_rsa="SELECT remote_password FROM amh.amh_backup_remote WHERE remote_id = '${ssh_id}' into outfile '${rsa}'";
+	#echo $sql;
+	mysql -uroot -p${MysqlPass} -e "${sql_rsa}";
+	sed -i 's#\\##g' ${rsa}; #ctrl+v ctrl+m
+	ssh -i ${rsa} ${ssh_user}@${ssh_host} mkdir -p ${ssh_path};
+expect > ${check_ssh_log} <<EOF
+spawn scp -i ${rsa} /home/backup/${backup_file} ${ssh_user}@${ssh_host}:${ssh_path}/${backup_file};
+set timeout 60000
+expect eof
+EOF
+fi;
+}
+amh_ssh_put &
+
+	_break=0;
+	put_sum=1;
+	while true; do
+		set -- `grep -q '%' ${check_ssh_log} && cat -v ${check_ssh_log} | sed 's#\^M#\n#g' | grep '%' | awk 'END {print}'`;
+		put_block_sum=$3;
+		if [ "$put_block_sum" != '' ]; then
+			echo "amh BRssh post $1 ******************> $2 $3 $4 $5";
+			[ "$_break" == 1 ] && break;
+			grep -q '100%' ${check_ssh_log} && log_text="post ${backup_file} success." &&  _break=1; 
+
+			if [ "$_put_block_sum" == "$put_block_sum" ]; then
+				UseSecond=$[($(date +%s)-StartDateSecond)];
+				[ $[UseSecond%5] == 0 ] && echo "[Notice] Request timed out. ($UseSecond/180)" && sleep 3;
+				[ "$UseSecond" -gt 180 ] && log_text="post ${backup_file} failed." && break;
+			else
+				StartDateSecond=$(date +%s);
+				_put_block_sum=$put_block_sum;
+			fi;
+		else
+			put_sum=$[put_sum+1];
+			sleep 1;
+			[ "$put_sum" -gt 15 ] && log_text="post ${backup_file} failed." && break;
+		fi;
+	done;
+
+else
+	log_text="post ${backup_file} failed.";
+fi;
+
+echo "${status}  ${log_text}";
+sql_log="INSERT INTO amh.amh_log(log_user_id, log_text, log_ip) VALUES('0', '${status} \n $log_text', 'localhost')";
+mysql -uroot -p${MysqlPass} -B -N -e "${sql_log}";
+done;
+}
+
+
+if [ "$1" == 'check' ]; then
+	check_remote_ssh $2;
+elif [ "$1" == 'post' ]; then
+	post_remote_ssh $2;
+fi;
+
+
+
+
+

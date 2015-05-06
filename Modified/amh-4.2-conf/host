@@ -1,0 +1,271 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+
+php_fpm_arr[1]='pm = ';
+php_fpm_arr[2]='pm.min_spare_servers = ';
+php_fpm_arr[3]='pm.start_servers = ';
+php_fpm_arr[4]='pm.max_spare_servers = ';
+php_fpm_arr[5]='pm.max_children = ';
+function HostManagement()
+{
+	if [ "$*" != '' ]; then
+		selected=$1;
+		domain=$2;
+		server_name=$3;
+		index_name=$4;
+		rewrite_file=$5;
+		error_page=$6;
+		access_log=$7;
+		error_log=$8;
+		host_subdirectory=$9;
+		host_pagespeed=$10;
+		php_fpm=${11};
+
+	else
+		echo "[AMH] Host Management please select: (1~7)"
+		select selected in 'start' 'stop' 'list' 'add' 'edit' 'del' 'exit'; do
+			break;
+		done;
+	fi;
+
+	if [ "$selected" == 'exit' ]; then
+		exit;
+	elif [ "$selected" == 'list' ]; then
+		for line in `ls /home/wwwroot/`; do
+			[ -f "/usr/local/nginx/conf/vhost/$line.conf" ] && echo $line [Running];
+			[ -f "/usr/local/nginx/conf/vhost_stop/$line.conf" ] && echo $line [Stop];
+		done;
+	elif [ "$selected" == 'add' ]; then
+		[ "$domain" == '' ] && read -p "[Notice] Please input domain:" domain
+		[ "$domain" == '' ] && echo '[error] empty domain' && exit 1;
+		[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] || [ -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && echo "[Error] $domain is exist!" && exit 1;
+	
+		# nginx-host.conf
+		[ -d /usr/local/php/etc/fpm ] && sock=php-cgi-$domain.sock || sock=php-cgi.sock;
+		cp /usr/local/nginx/conf/nginx-host.conf /usr/local/nginx/conf/vhost/$domain.conf;
+		sed -i "s#amysql.com#$domain#g" /usr/local/nginx/conf/vhost/$domain.conf;
+		sed -i "s#php-cgi.sock#$sock#g" /usr/local/nginx/conf/vhost/$domain.conf;
+
+		# php-fpm
+		mkdir -p /home/wwwroot/$domain/web;
+		if [ -d /usr/local/php/etc/fpm ];then
+			cp /usr/local/php/etc/php-fpm-template.conf /usr/local/php/etc/fpm/$domain.conf;
+			sed -i "s#example#$domain#g" /usr/local/php/etc/fpm/$domain.conf;
+			sed -i "s#php-fpm#pid/php-fpm-$domain#g" /usr/local/php/etc/fpm/$domain.conf;
+			sed -i "s/php-cgi/php-cgi-$domain/g" /usr/local/php/etc/fpm/$domain.conf;
+			sed -i "s#chroot = amysql.com#chroot = /home/wwwroot/$domain#g" /usr/local/php/etc/fpm/$domain.conf;
+			touch /usr/local/php/var/run/pid/php-fpm-$domain.pid;
+		fi;
+		if [ "$php_fpm" != '' ] && [ "$php_fpm" != '0' ]; then
+			php_fpm_i=0;
+			OldIFS=$IFS;
+			IFS=',';
+			for line in $php_fpm; do
+				let php_fpm_i+=1;
+				sed -i "s|\(${php_fpm_arr[$php_fpm_i]}\).*|\1$line|" /usr/local/php/etc/fpm/$domain.conf;
+			done;
+			IFS=$OldIFS;
+		fi;
+
+		# wwwroot chroot
+		cd /home/wwwroot/$domain;
+		mkdir -p tmp etc bin usr/sbin lib log dev;
+		chmod 777 tmp;
+		cp /etc/hosts /etc/resolv.conf /etc/nsswitch.conf etc/;
+		if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ]; then
+			lib_dir=`ldd /bin/bash | grep 'ld-linux' | awk '{print $1}'`;
+			lib_dir=`dirname $lib_dir`;
+			mkdir lib64;
+			(\cp $lib_dir/{ld-linux-x86-64.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} lib64/) 2> /dev/null;
+			lib_dir=`ldd /bin/bash | grep 'libc.so' | awk '{print $3}'`;
+			lib_dir=`dirname $lib_dir`;
+			lib_dir_chroot=${lib_dir:1};
+			mkdir -p $lib_dir_chroot;
+			(\cp $lib_dir/{ld-linux.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} $lib_dir_chroot/) 2> /dev/null;
+
+			lib_dir=`ldd /usr/bin/curl | grep 'libcurl.so.4' | awk '{print $3}'`;
+			lib_dir=`dirname $lib_dir`;
+			lib_dir_chroot=${lib_dir:1};
+			mkdir -p $lib_dir_chroot;
+			cp -a $lib_dir/gconv $lib_dir_chroot;
+			cp -a $lib_dir/{libsoftokn3.so,libsqlite3.so.0,libsqlite3.so.0.8.6} $lib_dir_chroot;
+		else
+			(\cp /lib/{ld-linux.so.2,libc.so.6,libdl.so.2,libnss_dns.so.2,libnss_files.so.2,libresolv.so.2,libtermcap.so.2} lib/) 2> /dev/null;
+			mkdir usr/lib;
+			cp -a /usr/lib/gconv usr/lib;
+			cp -a /usr/lib/{libsoftokn3.so,libsqlite3.so.0,libsqlite3.so.0.8.6} usr/lib;
+		fi;
+		
+		cp /bin/{sh,bash} bin;
+		urandom_id=`ls -l /dev/urandom | awk '{print $5 $6}'`;
+		urandom_id=${urandom_id/,/ };
+		mknod dev/urandom c $urandom_id;
+		( umount tmp/mysql.sock) 2>/dev/null;
+		touch tmp/mysql.sock;
+		mount --bind /tmp/mysql.sock tmp/mysql.sock;
+
+
+		#nginx-host.conf config ***********************
+		[ "$server_name" != '' ] && [ "$server_name" != '0' ] && server_name=${server_name//,/ } && \
+		sed -i "s|server_name .* #server_name end|server_name $server_name; #server_name end|" /usr/local/nginx/conf/vhost/$domain.conf;
+
+		[ "$index_name" != '' ] && [ "$index_name" != '0' ] && index_name=${index_name//,/ } && \
+		sed -i "s|index .* #index end|index $index_name; #index end|" /usr/local/nginx/conf/vhost/$domain.conf;
+
+		[ "$rewrite_file" != '' ] && [ "$rewrite_file" != '0' ] && \
+		sed -i "s|include rewrite/.*; #rewrite end|include rewrite/$rewrite_file; #rewrite end|" /usr/local/nginx/conf/vhost/$domain.conf;
+
+		if [ "$error_page" != '' ] && [ "$error_page" != '0' ]; then
+			OldIFS=$IFS;
+			IFS=',';
+			error_page_str='';
+			for line in $error_page; do
+				error_page_str="$error_page_str\n		error_page $line /ErrorPages/$line.html;";
+			done;
+			sed -i "/error_page .*html;/d" /usr/local/nginx/conf/vhost/$domain.conf;
+			[ "$error_page" != 'off' ] && sed -i "s|#error_page|&$error_page_str|" /usr/local/nginx/conf/vhost/$domain.conf;
+			IFS=$OldIFS;
+		fi;
+
+		[ "$access_log" == 'on' ] && sed -i "s|access_log off; #access_log end|access_log /home/wwwroot/$domain/log/access.log combined; #access_log end|" /usr/local/nginx/conf/vhost/$domain.conf || \
+		( [ "$access_log" == 'off' ] && sed -i "s|access_log .* #access_log end|access_log off; #access_log end|" /usr/local/nginx/conf/vhost/$domain.conf);
+
+		[ "$error_log" == 'on' ] && sed -i "s|error_log /dev/null; #error_log end|error_log /home/wwwroot/$domain/log/error.log crit; #error_log end|" /usr/local/nginx/conf/vhost/$domain.conf || \
+		( [ "$error_log" == 'off' ] && sed -i "s|error_log .* #error_log end|error_log /dev/null; #error_log end|" /usr/local/nginx/conf/vhost/$domain.conf);
+
+		sed -i "/set \$subdomain \"\/\$2\"/d" /usr/local/nginx/conf/vhost/$domain.conf;
+		[ "$host_subdirectory" == 'on' ] && sed -i "/set \$subdomain/a\ \tif ( \$host ~* \"(?:(\\\w+\\\.){0,})(\\\b(?\!www\\\b)\\\w+)\\\.\\\b(?\!(com|org|gov|net|cn)\\\b)\\\w+\\\.\[a-zA-Z\]+\" ) { set \$subdomain \"\/\$2\"; }" /usr/local/nginx/conf/vhost/$domain.conf;
+
+		sed -i "s/pagespeed on/pagespeed off/g" /usr/local/nginx/conf/vhost/$domain.conf;
+		[ "$host_pagespeed" == 'on' ] && sed -i "s/pagespeed off/pagespeed on/g" /usr/local/nginx/conf/vhost/$domain.conf; 
+		#end ******************************************
+
+
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid`;
+		/usr/local/php/sbin/php-fpm --fpm-config /usr/local/php/etc/fpm/$domain.conf;
+
+		cp -a /home/wwwroot/index/etc/html/* /home/wwwroot/$domain/web;
+		sed -i "s/www.amysql.com/$domain/g" /home/wwwroot/$domain/web/index.html;
+		for line in `ls "/home/wwwroot/$domain/web/ErrorPages"`; do
+			sed -i "s/www.amysql.com/$domain/g" /home/wwwroot/$domain/web/ErrorPages/$line;
+		done;
+
+		echo "[OK] successfully create $domain vhost";
+		echo "The DocumentRoot: /home/wwwroot/$domain/web/";
+		exit;
+
+	elif [ "$selected" == 'edit' ]; then
+		[ "$domain" == '' ] && read -p "[Notice] Please input domain:" domain
+		[ ! -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && [ ! -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && echo "[Error] $domain not exist!" && exit 1;
+		[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && host_conf_file=/usr/local/nginx/conf/vhost/$domain.conf || host_conf_file=/usr/local/nginx/conf/vhost_stop/$domain.conf;
+			
+		[ "$server_name" == '' ] && read -p "[Notice] Please input binding domain (e.g: amysql.com,www.amysql.com). cancel edit, please input 0 : " server_name
+		[ "$index_name" == '' ] && read -p "[Notice] Please input Nginx-index file name (e.g: index.html,index.htm,index.php). cancel edit, please input 0 : " index_name
+		[ "$rewrite_file" == '' ] && read -p "[Notice] Please input Nginx-rewrite file name (e.g: amh.conf). cancel edit, please input 0 : " rewrite_file
+		[ "$error_page" == '' ] && read -p "[Notice] Custom error page? Please input http code (e.g: 400,401,403,404,405,502,503) OR off. cancel edit, please input 0 : " error_page
+		[ "$access_log" == '' ] && read -p "[Notice] Open access_log? Please input on OR off. cancel edit, please input 0 : " access_log
+		[ "$error_log" == '' ] && read -p "[Notice] Open error_log? Please input on OR off. cancel edit, please input 0 : " error_log
+		[ "$host_subdirectory" == '' ] && read -p "[Notice] Binding second-level domain? please input on OR off. cancel edit, please input 0 : " host_subdirectory
+		[ "$host_pagespeed" == '' ] && read -p "[Notice] Open Nginx Page Speed? please input on OR off. cancel edit, please input 0 : " host_pagespeed
+		[ "$php_fpm" == '' ] && read -p "[Notice] set php-fpm config. please input 'pm_model,max_children,start_servers,min_spare_servers,max_spare_servers' (e.g: static,3,1,1,3). cancel edit, please input 0 : " php_fpm
+	
+		#nginx-host.conf config ***********************
+		[ "$server_name" != '' ] && [ "$server_name" != '0' ] && server_name=${server_name//,/ } && \
+		sed -i "s|server_name .* #server_name end|server_name $server_name; #server_name end|" $host_conf_file;
+
+		[ "$index_name" != '' ] && [ "$index_name" != '0' ] && index_name=${index_name//,/ } && \
+		sed -i "s|index .* #index end|index $index_name; #index end|" $host_conf_file;
+
+		[ "$rewrite_file" != '' ] && [ "$rewrite_file" != '0' ] && \
+		sed -i "s|include rewrite/.*; #rewrite end|include rewrite/$rewrite_file; #rewrite end|" $host_conf_file;
+
+		if [ "$error_page" != '' ] && [ "$error_page" != '0' ]; then
+			OldIFS=$IFS;
+			IFS=',';
+			error_page_str='';
+			for line in $error_page; do
+				error_page_str="$error_page_str\n        error_page $line /ErrorPages/$line.html;";
+			done;
+			sed -i "/error_page .*html;/d" $host_conf_file ;
+			[ "$error_page" != 'off' ] && sed -i "s|#error_page|&$error_page_str|" $host_conf_file;
+			IFS=$OldIFS;
+		fi;
+
+		[ "$access_log" == 'on' ] && sed -i "s|access_log off; #access_log end|access_log /home/wwwroot/$domain/log/access.log combined; #access_log end|" $host_conf_file || \
+		([ "$access_log" == 'off' ] && sed -i "s|access_log .* #access_log end|access_log off; #access_log end|" $host_conf_file);
+
+		[ "$error_log" == 'on' ] && sed -i "s|error_log /dev/null; #error_log end|error_log /home/wwwroot/$domain/log/error.log crit; #error_log end|" $host_conf_file || \
+		([ "$error_log" == 'off' ] && sed -i "s|error_log .* #error_log end|error_log /dev/null; #error_log end|" $host_conf_file);
+
+		sed -i "/set \$subdomain \"\/\$2\"/d" $host_conf_file;
+		[ "$host_subdirectory" == 'on' ] && sed -i "/set \$subdomain/a\ \tif ( \$host ~* \"(?:(\\\w+\\\.){0,})(\\\b(?\!www\\\b)\\\w+)\\\.\\\b(?\!(com|org|gov|net|cn)\\\b)\\\w+\\\.\[a-zA-Z\]+\" ) { set \$subdomain \"\/\$2\"; }" $host_conf_file;
+
+		sed -i "s/pagespeed on/pagespeed off/g" $host_conf_file;
+		[ "$host_pagespeed" == 'on' ] && sed -i "s/pagespeed off/pagespeed on/g" $host_conf_file; 
+
+		#php-fpm
+		if [ "$php_fpm" != '' ] && [ "$php_fpm" != '0' ]; then
+			php_fpm_i=0;
+			OldIFS=$IFS;
+			IFS=',';
+			for line in $php_fpm; do
+				let php_fpm_i+=1;
+				sed -i "s|\(${php_fpm_arr[$php_fpm_i]}\).*|\1$line|" /usr/local/php/etc/fpm/$domain.conf;
+			done;
+			IFS=$OldIFS;
+		fi;
+		#end ******************************************
+
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid`;
+		kill -QUIT `cat /usr/local/php/var/run/pid/php-fpm-$domain.pid`;
+		/usr/local/php/sbin/php-fpm --fpm-config /usr/local/php/etc/fpm/$domain.conf
+		echo "[OK] successfully change $domain vhost";
+		exit;
+
+	elif [ "$selected" == 'start' ]; then
+		if [ "$domain" == '' ]; then
+			echo "[Notice] All host start...";
+			for line in `ls /home/wwwroot/`; do
+				[ -f "/usr/local/nginx/conf/vhost_stop/$line.conf" ] && [ "$line" != 'index' ] && /root/amh/host start $line;
+			done;
+			exit 0;
+		fi;
+		[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && echo "[OK] $domain vhost is ok" && exit;
+		[ -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && mv /usr/local/nginx/conf/vhost_stop/$domain.conf /usr/local/nginx/conf/vhost/$domain.conf && \
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully start $domain vhost" && exit;
+		echo "[Error] $domain not exist!" && exit 1;
+	elif [ "$selected" == 'stop' ]; then
+		if [ "$domain" == '' ]; then
+			echo "[Notice] All host stop...";
+			for line in `ls /home/wwwroot/`; do
+				[ -f "/usr/local/nginx/conf/vhost/$line.conf" ] && [ "$line" != 'index' ] && /root/amh/host stop $line;
+			done;
+			exit 0;
+		fi;
+		[ -f "/usr/local/nginx/conf/vhost_stop/$domain.conf" ] && echo "[OK] $domain vhost already stopped" && exit;
+		[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && mv /usr/local/nginx/conf/vhost/$domain.conf /usr/local/nginx/conf/vhost_stop/$domain.conf && \
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid` && echo "[OK] successfully stop $domain vhost" && exit;
+		echo "[Error] $domain not exist!" && exit 1;
+	elif [ "$selected" == 'del' ]; then
+		[ "$domain" == '' ] && read -p "[Notice] deleted domain:" domain
+		[ -f "/usr/local/nginx/conf/vhost/$domain.conf" ] && host_conf_file=/usr/local/nginx/conf/vhost/$domain.conf || host_conf_file=/usr/local/nginx/conf/vhost_stop/$domain.conf;
+		[ ! -f "$host_conf_file" ] && echo "[Error] $domain not exist!" && exit 1;
+		rm -f $host_conf_file;
+		#php
+		[ -f /usr/local/php/etc/fpm/$domain.conf ] && rm -f /usr/local/php/etc/fpm/$domain.conf;
+		[ -f /usr/local/php/var/run/pid/php-fpm-$domain.pid ] && kill -QUIT `cat /usr/local/php/var/run/pid/php-fpm-$domain.pid`
+		kill -HUP `cat /usr/local/nginx/logs/nginx.pid`;
+		echo "[OK] successfully delete $domain vhost";
+		exit;
+	else
+		HostManagement;
+		return;
+	fi;
+}
+HostManagement $*;

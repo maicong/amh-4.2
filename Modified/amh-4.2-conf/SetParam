@@ -1,0 +1,172 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+function SetParam()
+{
+	if [ "$*" != '' ]; then
+		action=$1;
+		ParamName=$2;
+		ParamVal=$3;
+		reload=$4;
+	else
+		echo "[AMH] SetParam Management please select: (1~4)"
+		select action in 'php' 'mysql' 'amh' 'exit'; do break; done;
+	fi;
+
+	[ "$action" == 'exit' ] && exit;
+	if [ "$action" == 'php' ]; then
+		php[0]='date.timezone|Asia/Hong_Kong';
+		php[1]='display_errors|On/Off';
+		php[2]='memory_limit|68M';
+		php[3]='post_max_size|4M';
+		php[4]='upload_max_filesize|2M';
+		php[5]='max_file_uploads|10';
+		php[6]='max_execution_time|20';
+		php[7]='default_socket_timeout|60';
+		php[8]='session.cache_expire|180';
+		php[9]='short_open_tag|On/Off';
+
+		i=0;
+		PhpParamList='';
+		PhpParamListEG='';
+		for line in ${php[*]}; do
+			OldIFS=$IFS;
+			IFS='|';
+			set -- $line;
+			i=$[$i+1];
+			PhpParamList[$i]="$1";
+			PhpParamListEG[$i]="$2";
+			IFS=$OldIFS;
+		done;
+
+		[ "$ParamName" == '' ] && echo "[Notice] PHP parameter set, please select: (1~$i)" && \
+		select ParamName in ${PhpParamList[*]}; do break; done;
+
+		for((;i>0;i--));do 
+			if [ "${PhpParamList[$i]}" == "$ParamName" ]; then
+				[ "$ParamVal" == '' ] && read -p "[Notice] Please input $ParamName value (e.g: ${PhpParamListEG[$i]}): " ParamVal && \
+				[ "$ParamVal" == '' ] && SetParam $action $ParamName;
+				sed -i "s|\($ParamName = \).*|\1$ParamVal|" /etc/php.ini && echo "[OK] PHP parameters set success." ;
+				if [ "$reload" == '' ]; then
+					amh php reload;
+					amh php reload amh-web y;
+				fi;
+				exit;
+			fi;
+		done;
+		SetParam $action;
+		
+	elif [ "$action" == 'mysql' ]; then
+		mysql[0]='InnoDB_Engine|On/Off';
+		mysql[1]='key_buffer_size|16M';
+		mysql[2]='max_allowed_packet|1M';
+		mysql[3]='table_open_cache|64';
+		mysql[4]='sort_buffer_size|512K';
+		mysql[5]='net_buffer_length|8K';
+		mysql[6]='log_bin|On/Off';
+
+		i=0;
+		MySQLParamList='';
+		MySQLParamListEG='';
+		for line in ${mysql[*]}; do
+			OldIFS=$IFS;
+			IFS='|';
+			set -- $line;
+			i=$[$i+1];
+			MySQLParamList[$i]="$1";
+			MySQLParamListEG[$i]="$2";
+			IFS=$OldIFS;
+		done;
+
+		[ "$ParamName" == '' ] && echo "[Notice] MySQL parameter set, please select: (1~$i)" && \
+		select ParamName in ${MySQLParamList[*]}; do break; done;
+
+		for((;i>0;i--));do 
+			if [ "${MySQLParamList[$i]}" == "$ParamName" ]; then
+				
+				[ "$ParamVal" == '' ] && read -p "[Notice] Please input $ParamName value (e.g: ${MySQLParamListEG[$i]}): " ParamVal && \
+				[ "$ParamVal" == '' ] && SetParam $action $ParamName;
+
+				#InnoDB Engine
+				if [ "$ParamName" == 'InnoDB_Engine' ]; then
+					[ "$ParamVal" == 'On' ] && sed -i "/innodb = OFF/d" /etc/my.cnf && \
+					sed -i "/skip-innodb/d" /etc/my.cnf
+					[ "$ParamVal" == 'Off' ] && ! grep -q 'innodb = OFF' /etc/my.cnf && sed -i "/default-storage-engine = MyISAM/a innodb = OFF\nskip-innodb" /etc/my.cnf
+				elif [ "$ParamName" == 'log_bin' ]; then
+					[ "$ParamVal" == 'Off' ] && sed -i "/log-bin = mysql-bin/d" /etc/my.cnf;
+					[ "$ParamVal" == 'On' ] && ! grep -q 'log-bin = mysql-bin' /etc/my.cnf && sed -i "/myisam_sort_buffer_size/a log-bin = mysql-bin" /etc/my.cnf
+				else
+					sed -i "1,/^\($ParamName = \).*/s/^\($ParamName = \).*/\1$ParamVal/" /etc/my.cnf && echo "[OK] MySQL parameters set success." ;
+				fi;
+
+				[ "$reload" == '' ] && amh mysql restart;
+				exit 0;
+			fi;
+		done;
+		SetParam $action;
+
+	
+	elif [ "$action" == 'amh' ]; then
+		AMH[0]='amh_Listen|8888';
+		AMH[1]='amh_domain|ip/amysql.com/Off';
+
+		i=0;
+		AMHParamList='';
+		AMHParamListEG='';
+		for line in ${AMH[*]}; do
+			OldIFS=$IFS;
+			IFS='|';
+			set -- $line;
+			i=$[$i+1];
+			AMHParamList[$i]="$1";
+			AMHParamListEG[$i]="$2";
+			IFS=$OldIFS;
+		done;
+
+		[ "$ParamName" == '' ] && echo "[Notice] AMH parameter set, please select: (1~$i)" && \
+		select ParamName in ${AMHParamList[*]}; do break; done;
+
+		for((;i>0;i--));do 
+			if [ "${AMHParamList[$i]}" == "$ParamName" ]; then
+				
+				[ "$ParamVal" == '' ] && read -p "[Notice] Please input $ParamName value (e.g: ${AMHParamListEG[$i]}): " ParamVal && \
+				[ "$ParamVal" == '' ] && SetParam $action $ParamName;
+
+				if [ "$ParamName" == 'amh_Listen' ]; then
+					old_listen=`cat /usr/local/nginx/conf/nginx.conf | grep 'listen' | grep -v 'default'  | awk '{ print $2}' | sed 's/;//'`;
+					sed -i "1,/listen.*/s/\(.*listen\).*/\1  $ParamVal;/" /usr/local/nginx/conf/nginx.conf;
+
+					#sed -i "1,/$old_listen -j ACCEPT/s/$old_listen -j ACCEPT/$ParamVal -j ACCEPT/" /etc/sysconfig/iptables;
+					/sbin/iptables -D INPUT -p tcp --dport $old_listen -j ACCEPT;
+					/sbin/iptables -I INPUT -p tcp --dport $ParamVal -j ACCEPT;
+					/sbin/iptables-save > /etc/amh-iptables;
+
+					if [ "$reload" == '' ]; then
+						amh nginx reload;
+						echo "[OK] amh_Listen parameters set success.";
+					fi;
+				fi;
+
+				if [ "$ParamName" == 'amh_domain' ]; then
+					sed -i '/if ( $host !=/d' /usr/local/nginx/conf/nginx.conf;
+					[ "$ParamVal" != 'Off' ] && sed -i "/root *\/home\/wwwroot\/index\/web.*/a\ \t\tif ( \$host != '$ParamVal' ) { return 400; }"  /usr/local/nginx/conf/nginx.conf;
+					if [ "$reload" == '' ]; then
+						amh nginx reload;
+						echo "[OK] amh_domain parameters set success.";
+					fi;
+				fi;
+				exit;
+			fi;
+		done;
+		SetParam $action;
+	else
+		SetParam;
+	fi;
+}
+
+SetParam $*;

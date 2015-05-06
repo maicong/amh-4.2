@@ -1,0 +1,73 @@
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin;
+clear;
+echo '=============================================================';
+echo ' [LNMP/Nginx] Amysql Host - AMH 4.2 ';
+echo ' http://Amysql.com';
+echo '';
+
+
+dates=`date +%Y-%m-%d`;
+times=`date +%H:%M:%S`;
+sys_name=`sed '1q' /etc/issue`;
+sys_bit='32';
+[ `getconf WORD_BIT` == '32' ] && [ `getconf LONG_BIT` == '64' ] && sys_bit='64';
+IP=`ifconfig  | grep 'inet addr:'| egrep -v ":192.168|:172.1[6-9].|:172.2[0-9].|:172.3[0-2].|:10.|:127." | cut -d: -f2 | awk '{ print $1}'`;
+cpu_name=`cat /proc/cpuinfo | grep 'model name' | awk '{ for(i=4 ; i<=NF; i++){ print $i} }'`;
+cpu_num=`grep -c 'model name' /proc/cpuinfo`;
+
+#cpu utilization.
+head_str=`head -1 /proc/stat`;
+cpu_total=`echo "$head_str" | awk '{print $2+$3+$4+$5+$6+$7+$8}'`;
+cpu_user=`echo "$head_str" | awk '{print $2}'`;
+cpu_system=`echo "$head_str" | awk '{print $4}'`;
+sleep 0.2;
+head_str=`head -1 /proc/stat`;
+cpu_total_b=`echo "$head_str" | awk '{print $2+$3+$4+$5+$6+$7+$8}'`;
+cpu_user_b=`echo "$head_str" | awk '{print $2}'`;
+cpu_system_b=`echo "$head_str" | awk '{print $4}'`;
+cpu_total=$[$cpu_total_b-$cpu_total];
+cpu_user=$[$cpu_user_b-$cpu_user];
+cpu_system=$[$cpu_system_b-$cpu_system];
+cpu_use=`echo "$cpu_user $cpu_system $cpu_total" | awk '{printf("%.2f", ($1+$2)*100/$3)}'`;
+
+uptime_str=`uptime`;
+up_time=`echo "$uptime_str" | cut -f 1 -d "," | awk '{ print $3 $4 $5 $6}'`;
+sys_load=`echo "$uptime_str" | awk '{print $(NF-2), $(NF-1), $NF}' `;
+
+free_m_str=`free -m`;
+ram_total=`echo "$free_m_str" | grep 'Mem' | awk '{print $2}'`;
+ram=`echo "$free_m_str" | grep 'buffers/cache' | awk '{print $3}'`;
+
+df_sum=0;
+df_use=0;
+while read result; do
+       # set -- $result;
+	
+	i=0;
+	for value in $result; do
+		val='';
+		{ echo $value | grep -q '^[0-9\.]\{1,\}M$' && val=`echo $value | sed 's#M##' | awk '{printf("%.2f", $1/1024)}'`; } || \
+		{ echo $value | grep -q '^[0-9\.]\{1,\}G$' && val=`echo $value | sed 's#G##'`; } || \
+		{ echo $value | grep -q '^[0-9\.]\{1,\}T$' && val=`echo $value | sed 's#T##' | awk '{printf("%.2f", $1*1024)}'`; } 
+		if [ "$val" != '' -a "$i" == 0 ]; then
+			df_sum=`echo "$df_sum $val" | awk '{print $1+$2}'`;
+			i=$[i+1];
+		elif [ "$i" == 1 ]; then
+			[ "$val" != '' ] && df_use=`echo "$df_use $val" | awk '{print $1+$2}'`;
+			break;
+		fi;
+	done;
+done << EOT
+`df -h | grep -v 'mysql.sock' | awk '!i[$NF]++'`
+EOT
+
+echo "Linux:    ${sys_name} - ${sys_bit}BIT";
+echo "UpTime:   ${up_time} online.";
+echo "Time:     ${dates} ${times}";
+echo "LA:       ${sys_load}";
+echo "IP:       ${IP}";
+echo "CPU:      ${cpu_use}%us, ${cpu_num}*CPU - "${cpu_name};
+echo "RAM:      ${ram}MB / ${ram_total}MB";
+echo "HD:       ${df_use}GB / ${df_sum}GB";
+echo "";
