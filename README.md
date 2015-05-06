@@ -35,7 +35,7 @@ http://www.yuxiaoxi.com/2015-01-13-amh-mc.html
 
 **使用方法**
 
-1、安装wget命令
+1、安装 wget 和 screen 命令
 
 Centos:
 
