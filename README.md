@@ -71,3 +71,13 @@ Debian/Ubuntu:
 - 麦葱不提出本项目任何技术支持，若需技术支持请移步 amh.sh；
 
 - 开源是精神，不是义务
+
+**预览图**
+
+![](http://ww4.sinaimg.cn/large/67f51f75gw1ervwvpevs5j20et0begp5.jpg)
+![](http://ww3.sinaimg.cn/large/67f51f75gw1ervwwutz3wj20us06f447.jpg)
+![](http://ww2.sinaimg.cn/large/67f51f75gw1ervwx06zgnj20eu03sgmm.jpg)
+![](http://ww3.sinaimg.cn/large/67f51f75gw1ervwx4t7ojj20i701z3yy.jpg)
+![](http://ww3.sinaimg.cn/large/67f51f75gw1ervwxbt3dwj20wq0sjqau.jpg)
+![](http://ww3.sinaimg.cn/large/67f51f75gw1ervwxgneauj20wq0sytgl.jpg)
+![](http://ww2.sinaimg.cn/large/67f51f75gw1ervwxks337j20wq0syk36.jpg)
