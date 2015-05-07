@@ -49,7 +49,7 @@ if(is_array($host_list) && count($host_list) > 0)
 	if(!isset($list_show))
 	{
 	?>
-		<tr><td colspan="15" style="padding:10px;">暂无虚拟主机</td></tr>
+		<tr><td colspan="16" style="padding:10px;">暂无虚拟主机</td></tr>
 	<?php	
 	}
 	else

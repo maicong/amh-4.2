@@ -11,7 +11,7 @@ $c_name = 'module';
 include('category_list.php'); 
 ?>
 
-
+<h2>注意：以下部分模块对此版本的 Nginx 和 PHP 不兼容，安装会出错！<a href="https://github.com/maicong/amh-4.2/wiki/AMH-4.2-%E9%BA%A6%E8%91%B1%E4%BF%AE%E6%94%B9%E7%89%88-%E7%9B%AE%E5%89%8D%E6%94%AF%E6%8C%81%E7%9A%84%E5%90%8E%E5%8F%B0%E6%A8%A1%E5%9D%97%E7%A8%8B%E5%BA%8F" target="_blank">戳这里查看目前支持的模块</a></h2>
 <p>下载新的模块程序:</p>
 <?php
 	if (!empty($notice)) echo '<div style="margin:5px 2px;width:500px;"><p id="' . $status . '">' . $notice . '</p></div>';

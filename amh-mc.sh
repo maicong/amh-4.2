@@ -24,6 +24,7 @@ AMHPass='';
 StartDate='';
 StartDateSecond='';
 PHPDisable='';
+ModifiedTime='2015-05-07';
 
 # GetUrl
 GetUrl='';
@@ -103,7 +104,7 @@ function SelectLocation()
     select ServerLocation in 'coding.net [CN-Git]' 'raw.githubusercontent.com [USA-Git]' 'xcdn.yuxiaoxi.com [CN-CDN]' 'cdn.rawgit.com [USA-CDN]' 'Exit'; do break; done;
 
     [ "$ServerLocation" == 'Exit' ] && echo 'Exit Install.' && exit;
-    [ "$ServerLocation" != '' ] &&  echo -e "[OK] Your Location: ${ServerLocation}\n";
+    [ "$ServerLocation" != '' ] &&  echo -e "[OK] Your location is: \n${ServerLocation}";
 
     if [ "$ServerLocation" == 'coding.net [CN-Git]' ]; then
         GetUrl='https://coding.net/u/maicong/p/AMH-4.2/git/raw/master';
@@ -119,26 +120,34 @@ function SelectLocation()
     fi; 
 }
 
+
 function InputDomain()
 {
     if [ "$Domain" == '' ]; then
         echo '[Error] empty server ip.';
         read -p '[Notice] Please input server ip:' Domain;
         [ "$Domain" == '' ] && InputDomain;
+    else
+        echo '[OK] Your server ip is:' && echo $Domain;
+        read -p '[Notice] This is your server ip? : (y/n)' confirmDM;
+        if [ "$confirmDM" == 'n' ]; then
+            Domain='';
+            InputDomain;
+        elif [ "$confirmDM" != 'y' ]; then
+            InputDomain;
+        fi;
     fi;
-    [ "$Domain" != '' ] && echo '[OK] Your server ip is:' && echo $Domain;
 }
 
 
 function InputMysqlPass()
 {
     if [ "$MysqlPass" == '' ]; then
-        read -p '[Notice] Please input MySQL password:' MysqlPass;
         echo '[Error] MySQL password is empty.';
-        InputMysqlPass;
+        read -p '[Notice] Please input MySQL password:' MysqlPass;
+        [ "$MysqlPass" == '' ] && InputMysqlPass;
     else
-        echo '[OK] Your MySQL password is:';
-        echo $MysqlPass;
+        echo '[OK] Your MySQL password is:' && echo $MysqlPass;
     fi;
 }
 
@@ -146,12 +155,11 @@ function InputMysqlPass()
 function InputAMHPass()
 {
     if [ "$AMHPass" == '' ]; then
-        read -p '[Notice] Please input AMH password:' AMHPass;
         echo '[Error] AMH password empty.';
-        InputAMHPass;
+        read -p '[Notice] Please input AMH password:' AMHPass;
+        [ "$AMHPass" == '' ] && InputAMHPass;
     else
-        echo '[OK] Your AMH password is:';
-        echo $AMHPass;
+        echo '[OK] Your AMH password is:' && echo $AMHPass;
     fi;
 }
 
@@ -735,7 +743,6 @@ function InstallNginx()
         chmod 777 tmp;
         [ "$SysBit" == '64' ] && mkdir lib64 || mkdir lib;
         /usr/local/nginx/sbin/nginx;
-        /usr/local/php/sbin/php-fpm;
         ln -s /usr/local/nginx/sbin/nginx /usr/bin/nginx;
 
         echo "[OK] ${NginxVersion} install completed.";
@@ -813,6 +820,11 @@ function InstallAMH()
         cp $AMHDir/conf/{backup,revert,BRssh,BRftp,info,SetParam,module,crontab,upgrade} /root/amh;
         cp -a $AMHDir/conf/modules /root/amh;
         chmod +x /root/amh/backup /root/amh/revert /root/amh/BRssh /root/amh/BRftp /root/amh/info /root/amh/SetParam /root/amh/module /root/amh/crontab /root/amh/upgrade;
+
+        sed -i "s/Nginx 1.4.4/${NginxVersion/tengine-/Tengine }/g" /home/wwwroot/index/web/View/index.php;
+        sed -i "s/MySQL 5.5.34/${MysqlVersion/mysql-/MySQL }/g" /home/wwwroot/index/web/View/index.php;
+        sed -i "s/PHP 5.3.27/${PhpVersion/php-/PHP }/g" /home/wwwroot/index/web/View/index.php;
+        sed -i "s/#ModifiedTime#/${ModifiedTime}/g" /home/wwwroot/index/web/View/footer.php;
 
         SedMysqlPass=${MysqlPass//&/\\\&};
         SedMysqlPass=${SedMysqlPass//\'/\\\\\'};

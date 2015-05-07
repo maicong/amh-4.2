@@ -20,7 +20,7 @@ $c_name = 'module';
 include('category_list.php'); 
 ?>
 
-
+<h2>提示：这里的模块请放心安装</h2>
 <p>模块扩展&程序管理列表:</p>
 <?php
 	if (!empty($notice)) echo '<div style="margin:5px 2px;width:500px;"><p id="' . $status . '">' . $notice . '</p></div>';

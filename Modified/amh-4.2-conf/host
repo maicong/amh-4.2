@@ -24,7 +24,7 @@ function HostManagement()
 		access_log=$7;
 		error_log=$8;
 		host_subdirectory=$9;
-		host_pagespeed=$10;
+		host_pagespeed=${10};
 		php_fpm=${11};
 
 	else
