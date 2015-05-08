@@ -49,9 +49,20 @@ Debian/Ubuntu:
 
 2、然后运行安装命令
 
-`screen -S installAMH`
+```
+screen -S installAMH
 
-`wget https://raw.githubusercontent.com/maicong/amh-4.2/master/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
+cd ~
+
+rm -rf amh*
+
+wget https://raw.githubusercontent.com/maicong/amh-4.2/master/amh-mc.sh
+
+bash amh-mc.sh 2>&1 | tee amh-mc.log
+
+```
+
+如果已经安装过，或安装出错后重新安装，请先 `Uninstall AMH 4.2`
 
 更多模块可在管理面板进行安装。
 
