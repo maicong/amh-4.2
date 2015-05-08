@@ -48,8 +48,6 @@ MysqlVersion='mysql-5.6.24';
 PhpVersion='php-5.6.8';
 NginxVersion='tengine-2.1.0';
 PureFTPdVersion='pure-ftpd-1.0.36';
-NeusshblFiLe='/usr/local/bin/fetch_neusshbl.sh';
-NeusshblLink='/etc/cron.hourly/fetch_neusshbl.sh';
 
 # Function List *****************************************************************************
 function CheckSystem()
@@ -860,26 +858,6 @@ function InstallAMS()
     fi;
 }
 
-function InstallSafeSshd()
-{
-    echo "[neusshbl Installing] ************************************************** >>";
-    if [ ! -a $NeusshblFiLe ] && [ ! -L $NeusshblLink ]; then
-        LIBWRAP=`ldd \`which sshd\` | grep libwrap | wc -l`;
-        if [ $LIBWRAP -ge 1 ]; then
-            cd /usr/local/bin/;
-            wget antivirus.neu.edu.cn/ssh/soft/fetch_neusshbl.sh;
-            chmod +x fetch_neusshbl.sh;
-            cd /etc/cron.hourly/;
-            ln -s /usr/local/bin/fetch_neusshbl.sh .;
-            ./fetch_neusshbl.sh;
-        else
-            echo '[Error] Your system does not have TCP Wrappers!';
-        fi;
-    else
-        echo '[OK] neusshbl is installed!';
-    fi; 
-}
-
 
 # AMH Installing ****************************************************************************
 CheckSystem;
@@ -904,7 +882,6 @@ InstallNginx;
 InstallPureFTPd;
 InstallAMH;
 InstallAMS;
-InstallSafeSshd;
 
 if [ -s /usr/local/nginx ] && [ -s /usr/local/php ] && [ -s /usr/local/mysql ]; then
 
