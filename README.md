@@ -1,5 +1,17 @@
 #AMH 4.2 - 麦葱修改版
 
+##目前支持的系统##
+
+√ CentOS 6.6(64bit)
+
+√ CentOS 7(64bit)
+
+√ Debian 7(64bit)
+
+√ Debian 8(64bit) - mhash 安装出错，但不影响使用
+
+##修改的地方##
+
 > 添加 pcre-8.36
 
 > 添加 zlib-1.2.8
@@ -24,14 +36,13 @@
 
 > 修改错误提示页
 
-
-**发布页**
+##发布页##
 
 http://www.yuxiaoxi.com/2015-01-13-amh-mc.html
 
 目前只用 CentOS 6.6 做了测试，更多测试请等待麦葱更新~
 
-**使用方法**
+##使用方法##
 
 1、安装 wget 和 screen 命令
 
@@ -66,8 +77,7 @@ bash amh-mc.sh 2>&1 | tee amh-mc.log
 
 更多模块可在管理面板进行安装。
 
-
-**免责声明**
+##免责声明##
 
 - 本项目未做大量测试；
 
@@ -81,7 +91,7 @@ bash amh-mc.sh 2>&1 | tee amh-mc.log
 
 - 开源是精神，不是义务
 
-**预览图**
+##预览图##
 
 ![](http://ww4.sinaimg.cn/large/67f51f75gw1ervwvpevs5j20et0begp5.jpg)
 ![](http://ww3.sinaimg.cn/large/67f51f75gw1ervwwutz3wj20us06f447.jpg)
