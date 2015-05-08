@@ -14,8 +14,6 @@
 
 > 添加 ngx_http_substitutions_filter_module : https://github.com/yaoweibin/ngx_http_substitutions_filter_module
 
-> 添加 ssh ip 黑名单: http://antivirus.neu.edu.cn/scan/ssh.php
-
 > 替换 php-5.3.27 为 php-5.6.8
 
 > 替换 nginx-1.4.7 为 tengine-2.1.0
@@ -53,7 +51,7 @@ Debian/Ubuntu:
 
 `screen -S installAMH`
 
-`wget http://xcdn.yuxiaoxi.com/amh-4.2/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
+`wget https://raw.githubusercontent.com/maicong/amh-4.2/master/amh-mc.sh && bash amh-mc.sh 2>&1 | tee amh-mc.log`
 
 更多模块可在管理面板进行安装。
 
