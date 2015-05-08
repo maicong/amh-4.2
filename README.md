@@ -40,8 +40,6 @@
 
 http://www.yuxiaoxi.com/2015-01-13-amh-mc.html
 
-目前只用 CentOS 6.6 做了测试，更多测试请等待麦葱更新~
-
 ##使用方法##
 
 1、安装 wget 和 screen 命令
