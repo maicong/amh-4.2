@@ -165,7 +165,7 @@ function InputAMHPass()
 function Timezone()
 {
     rm -rf /etc/localtime;
-    ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;
+    ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime;
 
     echo '[ntp Installing] ******************************** >>';
     [ "$SysName" == 'CentOS' ] && yum install -y ntp || apt-get install -y ntpdate;
@@ -518,17 +518,17 @@ EOF
 
         ldconfig -v;
         if [ "$SysBit" == '64' ] ; then
-            ln -s /usr/local/mysql/lib/mysql /usr/lib64/mysql;
+            ln -sf /usr/local/mysql/lib/mysql /usr/lib64/mysql;
         else
-            ln -s /usr/local/mysql/lib/mysql /usr/lib/mysql;
+            ln -sf /usr/local/mysql/lib/mysql /usr/lib/mysql;
         fi;
         chmod 775 /usr/local/mysql/support-files/mysql.server;
         /usr/local/mysql/support-files/mysql.server start;
-        ln -s /usr/local/mysql/bin/mysql /usr/bin/mysql;
-        ln -s /usr/local/mysql/bin/mysqladmin /usr/bin/mysqladmin;
-        ln -s /usr/local/mysql/bin/mysqldump /usr/bin/mysqldump;
-        ln -s /usr/local/mysql/bin/myisamchk /usr/bin/myisamchk;
-        ln -s /usr/local/mysql/bin/mysqld_safe /usr/bin/mysqld_safe;
+        ln -sf /usr/local/mysql/bin/mysql /usr/bin/mysql;
+        ln -sf /usr/local/mysql/bin/mysqladmin /usr/bin/mysqladmin;
+        ln -sf /usr/local/mysql/bin/mysqldump /usr/bin/mysqldump;
+        ln -sf /usr/local/mysql/bin/myisamchk /usr/bin/myisamchk;
+        ln -sf /usr/local/mysql/bin/mysqld_safe /usr/bin/mysqld_safe;
 
         /usr/local/mysql/bin/mysqladmin password $MysqlPass;
         rm -rf /home/mysql_data/test;
@@ -576,11 +576,11 @@ function InstallPhp()
         make && make install;
 
         if [ "$SysName" == 'CentOS' ]; then
-            ln -s /usr/local/bin/libmcrypt-config /usr/bin/libmcrypt-config;
+            ln -sf /usr/local/bin/libmcrypt-config /usr/bin/libmcrypt-config;
             if [ `getconf WORD_BIT` == 32 ] && [ `getconf LONG_BIT` == 64 ]; then
-                ln -s /lib64/libpcre.so.0.0.1 /lib64/libpcre.so.1;
+                ln -sf /lib64/libpcre.so.0.0.1 /lib64/libpcre.so.1;
             else
-                ln -s /lib/libpcre.so.0.0.1 /lib/libpcre.so.1;
+                ln -sf /lib/libpcre.so.0.0.1 /lib/libpcre.so.1;
             fi;
         fi;
 
@@ -617,9 +617,9 @@ function InstallPhp()
         touch /usr/local/php/etc/fpm/amh.conf;
         /usr/local/php/sbin/php-fpm;
 
-        ln -s /usr/local/php/bin/php /usr/bin/php;
-        ln -s /usr/local/php/bin/phpize /usr/bin/phpize;
-        ln -s /usr/local/php/sbin/php-fpm /usr/bin/php-fpm;
+        ln -sf /usr/local/php/bin/php /usr/bin/php;
+        ln -sf /usr/local/php/bin/phpize /usr/bin/phpize;
+        ln -sf /usr/local/php/sbin/php-fpm /usr/bin/php-fpm;
 
         if [ $RamTotal -gt 1024 -a $RamTotal -le 1500 ]; then
             Memory_limit=192
@@ -730,8 +730,6 @@ function InstallNginx()
                 sed -i 's@^worker_processes.*@worker_processes 6;\nworker_cpu_affinity 100000 010000 001000 000100 000010 000001;@' /usr/local/nginx/conf/nginx.conf;
         elif [ $Cpunum == 8 ]; then
                 sed -i 's@^worker_processes.*@worker_processes 8;\nworker_cpu_affinity 10000000 01000000 00100000 00010000 00001000 00000100 00000010 00000001;@' /usr/local/nginx/conf/nginx.conf;
-        else
-                echo Google worker_cpu_affinity;
         fi;
 
         cd /home/wwwroot/index;
@@ -741,7 +739,7 @@ function InstallNginx()
         chmod 777 tmp;
         [ "$SysBit" == '64' ] && mkdir lib64 || mkdir lib;
         /usr/local/nginx/sbin/nginx;
-        ln -s /usr/local/nginx/sbin/nginx /usr/bin/nginx;
+        ln -sf /usr/local/nginx/sbin/nginx /usr/bin/nginx;
 
         echo "[OK] ${NginxVersion} install completed.";
     else
