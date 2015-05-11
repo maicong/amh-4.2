@@ -2,13 +2,19 @@
 
 ##目前支持的系统##
 
-√ CentOS 6.6(64bit)
+√ CentOS 6.4 (64bit)
 
-√ CentOS 7(64bit)
+√ CentOS 6.5 (64bit)
 
-√ Debian 7(64bit)
+√ CentOS 6.6 (64bit)
 
-√ Debian 8(64bit) - mhash 安装出错，但不影响使用
+√ CentOS 7 (64bit)
+
+√ Debian 7 (64bit)
+
+√ Debian 8 (64bit) - mhash 安装出错，但不影响使用
+
+√ Ubuntu 14.04 LTS (64bit)
 
 ##修改的地方##
 
