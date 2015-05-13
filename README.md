@@ -16,6 +16,8 @@
 
 √ Ubuntu 14.04 LTS (64bit)
 
+√ Ubuntu 15.04 (64bit)
+
 ##修改的地方##
 
 > 添加 pcre-8.36
@@ -58,7 +60,7 @@ Centos:
 
 Debian/Ubuntu:
 
-`apt-get install wget`
+`apt-get install -y wget`
 
 `apt-get install -y screen`
 
