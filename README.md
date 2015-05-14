@@ -16,6 +16,8 @@
 
 √ Ubuntu 14.04 LTS (64bit)
 
+√ Ubuntu 14.10 (64bit)
+
 √ Ubuntu 15.04 (64bit)
 
 ##修改的地方##
@@ -32,7 +34,7 @@
 
 > 添加 ngx_pagespeed-1.9.32.3
 
-> 添加 ngx_http_substitutions_filter_module : https://github.com/yaoweibin/ngx_http_substitutions_filter_module
+> 添加 ngx_http_substitutions_filter_module : ( https://github.com/yaoweibin/ngx_http_substitutions_filter_module )
 
 > 替换 php-5.3.27 为 php-5.6.8
 
