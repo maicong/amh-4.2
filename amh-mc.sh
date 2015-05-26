@@ -24,7 +24,7 @@ AMHPass='';
 StartDate='';
 StartDateSecond='';
 PHPDisable='';
-ModifiedTime='2015-05-07';
+ModifiedTime='2015-05-26';
 
 # GetUrl
 GetUrl='';
@@ -45,7 +45,7 @@ LibmcryptVersion='libmcrypt-2.5.8';
 MhashVersion='mhash-0.9.9.9';
 MCryptVersion='mcrypt-2.6.8';
 MysqlVersion='mysql-5.6.24';
-PhpVersion='php-5.6.8';
+PhpVersion='php-5.6.9';
 NginxVersion='tengine-2.1.0';
 PureFTPdVersion='pure-ftpd-1.0.36';
 

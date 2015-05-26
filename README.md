@@ -36,7 +36,7 @@
 
 > 添加 ngx_http_substitutions_filter_module : ( https://github.com/yaoweibin/ngx_http_substitutions_filter_module )
 
-> 替换 php-5.3.27 为 php-5.6.8
+> 替换 php-5.3.27 为 php-5.6.9
 
 > 替换 nginx-1.4.7 为 tengine-2.1.0
 
@@ -75,7 +75,7 @@ cd ~
 
 rm -rf amh*
 
-wget https://raw.githubusercontent.com/maicong/amh-4.2/master/amh-mc.sh
+wget https://coding.net/u/maicong/p/AMH-4.2/git/raw/master/amh-mc.sh
 
 bash amh-mc.sh 2>&1 | tee amh-mc.log
 
