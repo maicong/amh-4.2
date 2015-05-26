@@ -75,7 +75,7 @@ cd ~
 
 rm -rf amh*
 
-wget https://coding.net/u/maicong/p/AMH-4.2/git/raw/master/amh-mc.sh
+wget https://raw.githubusercontent.com/maicong/amh-4.2/master/amh-mc.sh
 
 bash amh-mc.sh 2>&1 | tee amh-mc.log
 
