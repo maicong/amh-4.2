@@ -1,5 +1,7 @@
 #AMH 4.2 - 麦葱修改版
 
+***本项目暂停更新，安装环境可以使用： [https://github.com/maicong/LNMP](https://github.com/maicong/LNMP) (仅限 CentOS 7)***
+
 ##目前支持的系统##
 
 √ CentOS 6.4 (64bit)
